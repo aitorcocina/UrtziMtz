@@ -196,18 +196,26 @@
     box-shadow:var(--shadow); color:var(--ink);
   }
   .stat-card-head{display:flex; align-items:center; gap:12px;}
-  .stat-row{display:flex; gap:8px; margin-top:12px;}
-  .stat-box{flex:1; border-radius:10px; padding:7px 4px 8px; text-align:center; background:#f2f4f2;}
+  .stat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;}
+  .stat-box{border-radius:10px; padding:7px 4px 8px; text-align:center; background:#f2f4f2;}
   .stat-box.goals{background:#eaf3de;}
   .stat-box.yellow{background:#fdf1cf;}
   .stat-box.red{background:#fbe1de;}
+  .stat-box.titular{background:#e2f0d9;}
+  .stat-box.suplente{background:#deebd9;}
+  .stat-box.lesionado{background:#fce4d6;}
+  
   .stat-box-label{
-    font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.05em; text-transform:uppercase;
+    font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.02em; text-transform:uppercase;
     display:flex; align-items:center; justify-content:center; gap:4px; color:#6b7568;
   }
   .stat-box.goals .stat-box-label{color:#3b6d11;}
   .stat-box.yellow .stat-box-label{color:#7a4f00;}
   .stat-box.red .stat-box-label{color:#791f1f;}
+  .stat-box.titular .stat-box-label{color:#385723;}
+  .stat-box.suplente .stat-box-label{color:#385723;}
+  .stat-box.lesionado .stat-box-label{color:#c65911;}
+
   .card-icon{width:11px; height:15px; border-radius:2px; display:inline-block;}
   .card-icon.yellow{background:#ffb100;}
   .card-icon.red{background:#e2503f;}
@@ -257,20 +265,6 @@
   .score-inputs{display:flex; align-items:center; gap:10px; margin-top:8px;}
   .score-inputs input{width:100%; text-align:center; font-family:'JetBrains Mono',monospace; font-size:18px;}
   .score-vs{font-family:'Oswald',sans-serif; color:#9aa39c; font-size:13px; text-transform:uppercase;}
-
-  .status-row{
-    display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:10px;
-  }
-  .status-pill{
-    text-align:center; padding:7px 4px; border-radius:8px; font-family:'JetBrains Mono',monospace;
-    font-size:9.5px; text-transform:uppercase; letter-spacing:.02em; background:#f0f2f0; color:#8a938c;
-    cursor:pointer; border:1px solid transparent;
-  }
-  .status-pill.status-titular.active{background:#eaf3de; color:#3b6d11; border-color:#c0dd97;}
-  .status-pill.status-suplente.active{background:#e6f1fb; color:#0c447c; border-color:#85b7eb;}
-  .status-pill.status-no_convocado.active{background:#eef0ee; color:#5f5e5a; border-color:#c9cfc9;}
-  .status-pill.status-lesionado.active{background:#fbe1de; color:#a32d2d; border-color:#f09595;}
-  .status-pill.status-sancionado.active{background:#fdf1cf; color:#854f0b; border-color:#ef9f27;}
 
   .share-actions{display:flex; gap:10px; justify-content:center; padding:14px 24px 0;}
   .share-btn{
@@ -351,7 +345,7 @@
     </div>
   </main>
 
-  <p class="share-note">Los datos se guardan en este móvil. Usa "Exportar" para mandarle a tu compañero un archivo con todo actualizado, y que lo abra con "Importar" en el suyo.</p>
+  <p class="share-note">Los datos se guardan en la nube y se sincronizan automáticamente: tú y tu compañero veis siempre lo mismo. Los botones de abajo son solo para hacer una copia de seguridad si la necesitas.</p>
   <div class="share-actions">
     <button class="share-btn" id="exportBtn">⇩ Exportar datos</button>
     <button class="share-btn" id="importBtn">⇧ Importar datos</button>
@@ -458,8 +452,8 @@
      2. Copia "Project URL" y pégalo en SUPABASE_URL
      3. Copia la clave "anon public" y pégala en SUPABASE_ANON_KEY
      Puedes editar estas dos líneas directamente en GitHub (icono del lápiz) sin volver aquí. */
-  const SUPABASE_URL = 'https://bzjzedwbahgitunoksps.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_GwXGrJorusdd94VeHBH4Lg_C657Knj5';
+  const SUPABASE_URL = 'TU_SUPABASE_URL';
+  const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY';
 
   const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -724,13 +718,6 @@
 
   /* ---------- Stats ---------- */
   let stats = {};
-  const STATUS_OPTS = [
-    {key:'titular', label:'Titular'},
-    {key:'suplente', label:'Suplente'},
-    {key:'no_convocado', label:'No convocado'},
-    {key:'lesionado', label:'Lesionado'},
-    {key:'sancionado', label:'Sancionado'}
-  ];
 
   async function loadStats(){
     stats = (await storeGet('stats')) || {};
@@ -739,8 +726,13 @@
     await storeSet('stats', stats);
   }
   function getStat(id){
-    if(!stats[id]) stats[id] = {goals:0, yellow:0, red:0, status:'no_convocado'};
-    if(stats[id].status === undefined) stats[id].status = 'no_convocado';
+    if(!stats[id]) {
+      stats[id] = { goals:0, yellow:0, red:0, titular:0, suplente:0, lesionado:0 };
+    }
+    // Asegurar que las nuevas variables de contadores existan si venías de datos viejos
+    if(stats[id].titular === undefined) stats[id].titular = 0;
+    if(stats[id].suplente === undefined) stats[id].suplente = 0;
+    if(stats[id].lesionado === undefined) stats[id].lesionado = 0;
     return stats[id];
   }
 
@@ -762,7 +754,7 @@
             <p class="player-name" style="font-size:15px;">${p.number ? `<span class="player-num">${escapeHtml(p.number)}</span>` : ''}${escapeHtml(p.name)}</p>
           </div>
         </div>
-        <div class="stat-row">
+        <div class="stat-grid">
           <div class="stat-box goals">
             <div class="stat-box-label"><span class="ball-icon"></span>Goles</div>
             <div class="stat-controls">
@@ -787,24 +779,33 @@
               <button class="stat-btn" data-type="red" data-delta="1">+</button>
             </div>
           </div>
-        </div>
-        <div class="status-row">
-          ${STATUS_OPTS.map(opt => `
-            <div class="status-pill status-${opt.key}${s.status===opt.key?' active':''}" data-status="${opt.key}">${opt.label}</div>
-          `).join('')}
+          <div class="stat-box titular">
+            <div class="stat-box-label">Titular</div>
+            <div class="stat-controls">
+              <button class="stat-btn" data-type="titular" data-delta="-1">–</button>
+              <span class="stat-value">${s.titular}</span>
+              <button class="stat-btn" data-type="titular" data-delta="1">+</button>
+            </div>
+          </div>
+          <div class="stat-box suplente">
+            <div class="stat-box-label">Suplente</div>
+            <div class="stat-controls">
+              <button class="stat-btn" data-type="suplente" data-delta="-1">–</button>
+              <span class="stat-value">${s.suplente}</span>
+              <button class="stat-btn" data-type="suplente" data-delta="1">+</button>
+            </div>
+          </div>
+          <div class="stat-box lesionado">
+            <div class="stat-box-label">Lesión</div>
+            <div class="stat-controls">
+              <button class="stat-btn" data-type="lesionado" data-delta="-1">–</button>
+              <span class="stat-value">${s.lesionado}</span>
+              <button class="stat-btn" data-type="lesionado" data-delta="1">+</button>
+            </div>
+          </div>
         </div>
       </div>`;
     }).join('');
-
-    list.querySelectorAll('.status-pill').forEach(pill=>{
-      pill.addEventListener('click', async ()=>{
-        const id = pill.closest('.stat-card').dataset.id;
-        const status = pill.dataset.status;
-        getStat(id).status = status;
-        renderStats();
-        await saveStats();
-      });
-    });
 
     list.querySelectorAll('.stat-btn').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
