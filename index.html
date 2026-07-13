@@ -447,11 +447,7 @@
     toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
   }
 
-  /* ====== CONFIGURA AQUÍ TU SUPABASE ======
-     1. Ve a tu proyecto en supabase.com -> Settings -> API
-     2. Copia "Project URL" y pégalo en SUPABASE_URL
-     3. Copia la clave "anon public" y pégala en SUPABASE_ANON_KEY
-     Puedes editar estas dos líneas directamente en GitHub (icono del lápiz) sin volver aquí. */
+  /* ====== CONFIGURA AQUÍ TU SUPABASE ====== */
   const SUPABASE_URL = 'TU_SUPABASE_URL';
   const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY';
 
@@ -729,7 +725,6 @@
     if(!stats[id]) {
       stats[id] = { goals:0, yellow:0, red:0, titular:0, suplente:0, lesionado:0 };
     }
-    // Asegurar que las nuevas variables de contadores existan si venías de datos viejos
     if(stats[id].titular === undefined) stats[id].titular = 0;
     if(stats[id].suplente === undefined) stats[id].suplente = 0;
     if(stats[id].lesionado === undefined) stats[id].lesionado = 0;
