@@ -2,1137 +2,1341 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Restaurante Begoña · Control interno</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mi Equipo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
-    --cream:#FBF7F1; --card:#FFFFFF; --ink:#3E3A34; --muted:#8B8579; --border:#EAE3D5;
-    --peach:#F2C4A6;    --peach-light:#FBEBDE;
-    --butter:#EFD98C;   --butter-light:#FBF3D8;
-    --sky:#A7C6DC;      --sky-light:#E7F1F7;
-    --sage:#9BBB93;     --sage-light:#E4EFDE;
-    --rose:#DCA3AA;     --rose-light:#F7E7E9;
-    --lavender:#C6B4D8; --lavender-light:#EEE6F3;
-    --clay:#D6A276;     --clay-light:#F5E9DB;
-    --good:#8FB89A; --warn:#E0A96D; --bad:#D68585;
+    --pitch-dark:#0f3d2e;
+    --pitch:#1f5c42;
+    --pitch-light:#2e7a56;
+    --line:#eef3ea;
+    --line-dim:rgba(238,243,234,0.45);
+    --line-faint:rgba(238,243,234,0.14);
+    --ink:#0a2318;
+    --amber:#ffb100;
+    --amber-dark:#7a4f00;
+    --red:#e2503f;
+    --card-bg:#ffffff;
+    --shadow:0 2px 10px rgba(10,35,24,0.12);
+    font-size:16px;
   }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{background:var(--cream); color:var(--ink); font-family:'Inter',sans-serif; -webkit-tap-highlight-color:transparent; padding-bottom:40px;}
-  h1,h2,h3{font-family:'Fraunces',serif; font-weight:600; margin:0;}
-
-  .app-shell{max-width:1000px; margin:0 auto;}
-
-  header.top{padding:26px 18px 16px; text-align:center;}
-  header.top .eyebrow{font-size:15px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink); font-weight:700; font-family:'Fraunces',serif;}
-  header.top h1{font-size:22px; color:var(--muted); font-weight:500;}
-  header.top .sub{font-size:13px; color:var(--muted); margin-top:4px;}
-
-  .app-switch{display:flex; gap:8px; padding:0 16px 16px; max-width:420px; margin:0 auto;}
-  .app-switch button{
-    flex:1; border:none; border-radius:12px; padding:10px 8px; cursor:pointer;
-    font-family:'Inter',sans-serif; font-weight:600; font-size:12.5px; color:var(--ink);
-    background:var(--card); border:1px solid var(--border);
-    display:flex; flex-direction:column; align-items:center; gap:2px;
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--pitch-dark); color:var(--line); font-family:'Inter',sans-serif; overscroll-behavior-y:none;}
+  body{padding-bottom:84px; min-height:100vh;}
+  .field-lines{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      repeating-linear-gradient(90deg, var(--line-faint) 0 1px, transparent 1px 90px),
+      linear-gradient(180deg, var(--pitch-dark), var(--pitch) 40%, var(--pitch-dark));
   }
-  .app-switch button .ic{font-size:16px;}
-  .app-switch button.active.appcc{background:var(--sage); border-color:transparent;}
-  .app-switch button.active.horario{background:var(--sky); border-color:transparent;}
+  .app{position:relative; z-index:1; max-width:520px; margin:0 auto;}
 
-  nav.tabs{display:flex; overflow-x:auto; gap:8px; padding:6px 16px 14px; scrollbar-width:none;}
-  nav.tabs::-webkit-scrollbar{display:none;}
-  nav.tabs button{
-    flex:0 0 auto; border:1px solid var(--border); background:var(--card); color:var(--ink);
-    padding:9px 14px; border-radius:999px; font-family:'Inter',sans-serif; font-size:13.5px; font-weight:600;
-    display:flex; align-items:center; gap:6px; cursor:pointer; white-space:nowrap;
+  header.matchhead{
+    padding:22px 18px 18px;
+    border-bottom:2px dashed var(--line-dim);
+    text-align:center;
   }
-  nav.tabs button.active{ border-color:transparent; }
-  nav.tabs button:active{ transform:scale(.96); }
-
-  main{padding:4px 16px 30px;}
-
-  .section-head{display:flex; align-items:center; justify-content:space-between; margin:18px 0 10px;}
-  .section-head h2{font-size:19px;}
-  .section-head .accent-bar{display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:8px;}
-
-  .card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; margin-bottom:12px; box-shadow:0 1px 2px rgba(62,58,52,.04);}
-
-  .btn{border:none; border-radius:12px; padding:10px 16px; font-family:'Inter',sans-serif; font-weight:600; font-size:13.5px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;}
-  .btn:active{transform:scale(.97);}
-  .btn-add{background:var(--ink); color:#FFF9EF;}
-  .btn-ghost{background:transparent; color:var(--muted); border:1px solid var(--border);}
-  .btn-sm{padding:6px 10px; font-size:12.5px; border-radius:9px;}
-  .btn-danger{background:var(--rose-light); color:#8A4650;}
-  .btn-del{background:var(--rose-light); color:#8A4650; border:none; width:34px;height:34px;border-radius:10px; font-size:15px; display:flex; align-items:center; justify-content:center; cursor:pointer;}
-
-  input[type=text], input[type=date], input[type=number], input[type=tel], select{
-    font-family:'Inter',sans-serif; border:1px solid var(--border); background:#FFFDF9; border-radius:9px;
-    padding:8px 10px; font-size:14px; color:var(--ink); width:100%;
+  .kit-label{
+    font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.18em;
+    color:var(--amber); text-transform:uppercase; margin-bottom:8px;
   }
-  input:focus, select:focus{outline:2px solid var(--sky); outline-offset:1px;}
-  label.field-label{font-size:11px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em; display:block; margin-bottom:3px;}
-
-  .row-grid{display:grid; gap:8px; margin-bottom:8px; align-items:end;}
-  .empty-hint{text-align:center; color:var(--muted); font-size:13.5px; padding:22px 10px; border:1.5px dashed var(--border); border-radius:14px;}
-
-  /* Month nav (compartido) */
-  .month-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; gap:8px;}
-  .month-nav button{background:var(--card); border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-weight:600; cursor:pointer; flex:0 0 auto;}
-  .month-nav .label{text-align:center;}
-  .month-nav .label h2{font-size:19px;}
-
-  .table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--border); border-radius:14px;}
-  table.cal{width:100%; border-collapse:collapse; font-size:12.5px; background:var(--card);}
-  table.cal th{background:var(--sky-light); color:#2c5570; font-weight:700; padding:7px 4px; font-size:10.5px; text-transform:uppercase; letter-spacing:.02em; white-space:nowrap; position:sticky; top:0;}
-  table.cal td{padding:5px 3px; text-align:center; border-bottom:1px solid var(--border);}
-  table.cal input, table.cal select{width:100%; min-width:58px; padding:5px 3px; font-size:12px; text-align:center; border:1px solid var(--border); border-radius:6px;}
-  table.cal select{min-width:66px;}
-  table.cal td.dia{font-weight:700; min-width:30px;}
-  table.cal td.total{font-weight:700; background:var(--peach-light); border-radius:6px;}
-
-  /* Limpieza */
-  .limpieza-cat{margin-bottom:22px;}
-  .item-row{background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:8px; overflow:hidden;}
-  .item-head{display:flex; align-items:center; justify-content:space-between; padding:12px 14px; cursor:pointer;}
-  .item-head .left{display:flex; flex-direction:column; gap:2px;}
-  .item-head .name{font-weight:700; font-size:14.5px;}
-  .item-head .freq{font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em;}
-  .item-head .chev{color:var(--muted); font-size:12px;}
-  .months{display:none; grid-template-columns:repeat(3,1fr); gap:8px; padding:0 14px 14px;}
-  .months.open{display:grid;}
-  .month-chip{display:flex; align-items:center; gap:6px; font-size:12.5px; background:var(--sage-light); border-radius:8px; padding:6px 8px; cursor:pointer; user-select:none;}
-  .month-chip.done{background:var(--good); color:#fff; font-weight:600;}
-  .month-chip input{display:none;}
-  .item-edit-row{display:flex; gap:6px; padding:0 14px 12px; align-items:center;}
-  .fixed-pin{font-size:11px; color:var(--muted); white-space:nowrap;}
-
-  /* Anual */
-  .bloque-title{font-size:14.5px; font-weight:700; margin:16px 0 8px; display:flex; align-items:center; gap:8px;}
-  .anual-item{display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 12px; margin-bottom:6px;}
-  .anual-item span.txt{font-size:13.5px; flex:1;}
-  .status-pill{border:none; border-radius:999px; padding:6px 10px; font-size:11.5px; font-weight:700; cursor:pointer; white-space:nowrap;}
-  .status-listo{background:var(--good); color:#fff;}
-  .status-progreso{background:var(--sky); color:#20465c;}
-
-  /* Manipuladores */
-  .manip-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
-  .manip-card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:8px; align-items:center; text-align:center;}
-  .manip-avatar{width:52px;height:52px;border-radius:50%; background:var(--lavender-light); display:flex; align-items:center; justify-content:center; font-size:20px;}
-  .manip-card input[type=text]{text-align:center; font-weight:600;}
-  .file-btn{display:inline-block; font-size:12px; padding:6px 10px; border-radius:8px; background:var(--lavender-light); color:#4A3B5C; cursor:pointer; font-weight:600;}
-  .file-btn input{display:none;}
-  .pdf-link{font-size:12px; color:var(--clay); font-weight:600; text-decoration:none;}
-
-  /* Proveedores */
-  .prov-card .prov-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
-  .prov-name{font-weight:700; font-size:15px;}
-  .vehiculo-select{border:none; border-radius:999px; padding:5px 10px; font-size:11.5px; font-weight:700; cursor:pointer; width:auto;}
-  .veh-malo{background:var(--bad); color:#fff;}
-  .veh-bueno{background:var(--warn); color:#fff;}
-  .veh-muybueno{background:var(--good); color:#fff;}
-  .productos-list{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
-  .producto-chip{background:var(--clay-light); color:#6b4423; font-size:12px; font-weight:600; padding:5px 9px; border-radius:999px; display:flex; align-items:center; gap:5px;}
-  .producto-chip button{background:none; border:none; color:#6b4423; cursor:pointer; font-size:12px; padding:0;}
-  .add-producto{display:flex; gap:6px; margin-top:8px;}
-
-  /* Horario */
-  .admin-emp-card{display:flex; align-items:center; justify-content:space-between; gap:8px;}
-  .admin-emp-card .name-input{font-weight:700; border:none; background:transparent; padding:2px 0; font-size:15px;}
-  .admin-emp-card .hrs{font-size:12.5px; color:var(--muted);}
-  .badge-flag{font-size:11px; font-weight:700; padding:4px 8px; border-radius:999px; white-space:nowrap;}
-  .flag-ok{background:var(--sage-light); color:#3d5c37;}
-  .flag-low{background:#FBEBDE; color:#8a5a2c;}
-  .flag-high{background:#F7E7E9; color:#8A4650;}
-  .emp-actions{display:flex; align-items:center; gap:8px; cursor:pointer; flex:1;}
-  .emp-toolbar{margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;}
-  .share-box{margin-top:10px; background:var(--sky-light); border-radius:12px; padding:10px;}
-  .share-box input{background:#fff;}
-  .share-box .hint{font-size:11.5px; color:#2c5570; margin-top:6px;}
-
-  .total-card{background:linear-gradient(135deg,var(--peach),var(--butter)); border-radius:18px; padding:20px; text-align:center; color:#4a3520; margin:12px 0;}
-  .total-card .lbl{font-size:12.5px; opacity:.85; font-weight:600;}
-  .total-card .num{font-family:'Fraunces',serif; font-size:38px; font-weight:700; margin:2px 0;}
-  .total-card .unit{font-size:12.5px; opacity:.85;}
-  .total-card .pdf-btn{margin-top:12px; background:#fff; color:#4a3520; border:none; padding:8px 16px; border-radius:999px; font-weight:700; font-size:13px; cursor:pointer;}
-
-  footer.note{text-align:center; color:var(--muted); font-size:11.5px; padding:20px 24px 10px;}
-  .lock-banner{background:var(--sage-light); border-radius:14px; padding:12px 14px; margin-bottom:14px; font-size:13px; color:#3d5c37; display:flex; justify-content:space-between; align-items:center; gap:8px;}
-  .lock-banner a{color:#3d5c37; font-weight:700; text-decoration:underline; white-space:nowrap;}
-
-  @media(min-width:720px){
-    .app-shell{padding:0 12px;}
-    nav.tabs{flex-wrap:wrap; overflow-x:visible;}
-    .manip-grid{grid-template-columns:repeat(4,1fr);}
-    .row-grid.two-col-desktop{grid-template-columns:1fr 1fr;}
-    table.cal{font-size:13.5px;}
-    table.cal th{font-size:11.5px;}
-    .card{padding:18px;}
+  .team-name{
+    font-family:'Oswald',sans-serif; font-weight:600; font-size:34px; letter-spacing:.01em;
+    color:var(--line); text-transform:uppercase; line-height:1.05;
+    border:none; background:transparent; text-align:center; width:100%; outline:none;
   }
+  .team-cat{
+    font-family:'Oswald',sans-serif; font-weight:400; font-size:15px; letter-spacing:.06em;
+    color:var(--line-dim); text-transform:uppercase; margin-top:6px;
+    border:none; background:transparent; text-align:center; width:100%; outline:none;
+  }
+  .team-name:focus, .team-cat:focus{ color:var(--amber); }
+  .edit-hint{font-size:11px; color:var(--line-dim); margin-top:10px; font-family:'JetBrains Mono',monospace;}
+
+  main{padding:18px 16px 8px;}
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .section-title{
+    font-family:'Oswald',sans-serif; font-weight:500; font-size:13px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--amber); margin:0 0 14px; display:flex; align-items:center; gap:10px;
+  }
+  .section-title::after{content:''; flex:1; height:1px; background:var(--line-faint);}
+
+  /* Squad cards */
+  .player-card{
+    background:var(--card-bg); border-radius:14px; padding:12px; margin-bottom:10px;
+    display:flex; align-items:center; gap:12px; box-shadow:var(--shadow); color:var(--ink);
+  }
+  .player-photo{
+    width:56px; height:56px; border-radius:50%; object-fit:cover; flex-shrink:0;
+    background:var(--pitch); border:2px solid var(--amber);
+  }
+  .player-photo.placeholder{
+    display:flex; align-items:center; justify-content:center; color:var(--line);
+    font-family:'Oswald',sans-serif; font-weight:600; font-size:20px;
+  }
+  .player-info{flex:1; min-width:0;}
+  .player-name{font-family:'Oswald',sans-serif; font-weight:500; font-size:17px; margin:0 0 2px; text-transform:uppercase; letter-spacing:.01em;}
+  .player-phone{font-family:'JetBrains Mono',monospace; font-size:13px; color:#5c6b62; margin:0;}
+  .player-position{color:var(--pitch); font-weight:600;}
+  .player-phone a{color:#1f5c42; text-decoration:none;}
+  .player-num{
+    font-family:'JetBrains Mono',monospace; font-weight:500; font-size:13px; color:var(--pitch);
+    background:#e7f0ea; border-radius:6px; padding:2px 7px; margin-right:6px;
+  }
+  .player-actions{display:flex; flex-direction:column; gap:6px;}
+  .icon-btn{
+    width:32px; height:32px; border-radius:8px; border:1px solid #e2e6e2; background:#fafbfa;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; color:#8a938c;
+  }
+  .icon-btn:active{background:#eee;}
+  .icon-btn.danger{color:var(--red);}
+
+  .empty-state{
+    text-align:center; padding:36px 20px; color:var(--line-dim);
+  }
+  .empty-state p{margin:8px 0 0; font-size:14px;}
+  .empty-state .big{font-family:'Oswald',sans-serif; font-size:18px; color:var(--line); text-transform:uppercase;}
+
+  .fab{
+    position:fixed; bottom:92px; right:20px; z-index:20;
+    width:56px; height:56px; border-radius:50%; background:var(--amber); color:var(--ink);
+    border:none; font-size:28px; box-shadow:0 4px 14px rgba(0,0,0,0.35);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .fab:active{transform:scale(0.94);}
+
+  /* Bottom nav */
+  nav.tabbar{
+    position:fixed; bottom:0; left:0; right:0; z-index:30;
+    background:var(--pitch-dark); border-top:1px solid rgba(238,243,234,0.15);
+    display:flex; max-width:520px; margin:0 auto;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .tab{
+    flex:1; text-align:center; padding:11px 4px 9px; background:none; border:none; color:var(--line-dim);
+    font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+    display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;
+  }
+  .tab.active{color:var(--amber);}
+  .tab svg{width:22px; height:22px;}
+
+  /* Calendar */
+  .cal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .cal-nav-btn{
+    background:var(--card-bg); border:none; width:34px; height:34px; border-radius:8px;
+    color:var(--pitch-dark); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .cal-month{font-family:'Oswald',sans-serif; font-weight:500; font-size:18px; text-transform:uppercase; color:var(--line);}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:18px;}
+  .cal-dow{font-family:'JetBrains Mono',monospace; font-size:10px; text-align:center; color:var(--line-dim); text-transform:uppercase; padding-bottom:4px;}
+  .cal-day{
+    aspect-ratio:1; background:var(--card-bg); border-radius:9px; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; cursor:pointer; position:relative; color:var(--ink);
+    font-family:'JetBrains Mono',monospace; font-size:13px;
+  }
+  .cal-day.empty{background:transparent; cursor:default;}
+  .cal-day.today{box-shadow:inset 0 0 0 2px var(--amber);}
+  .cal-day .thumb{
+    position:absolute; inset:0; border-radius:9px; object-fit:cover; opacity:0.88;
+  }
+  .cal-day .num{position:relative; z-index:1;}
+  .note-dot{
+    position:absolute; bottom:4px; left:4px; width:6px; height:6px; border-radius:50%;
+    background:var(--amber);
+  }
+  .cal-day.has-photos .num{
+    color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.6); font-weight:500;
+  }
+  .cal-day .count-badge{
+    position:absolute; top:3px; right:3px; background:var(--amber); color:var(--ink);
+    font-size:9px; font-weight:500; border-radius:50%; width:15px; height:15px;
+    display:flex; align-items:center; justify-content:center; z-index:2;
+  }
+
+  /* Modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,20,13,0.72); z-index:100;
+    display:none; align-items:flex-end; justify-content:center;
+  }
+  .overlay.open{display:flex;}
+  .sheet{
+    background:var(--card-bg); color:var(--ink); width:100%; max-width:520px;
+    border-radius:20px 20px 0 0; padding:20px 18px calc(20px + env(safe-area-inset-bottom));
+    max-height:88vh; overflow-y:auto;
+  }
+  .sheet-handle{width:36px; height:4px; background:#d9ddda; border-radius:2px; margin:0 auto 16px;}
+  .sheet-title{font-family:'Oswald',sans-serif; font-weight:500; font-size:19px; text-transform:uppercase; margin:0 0 16px;}
+  .field-label{font-size:12px; color:#7a847d; margin:14px 0 6px; font-weight:500; text-transform:uppercase; letter-spacing:.05em;}
+  .field-label:first-of-type{margin-top:0;}
+  input[type=text], input[type=tel]{
+    width:100%; padding:11px 12px; border-radius:10px; border:1px solid #dde2de; font-size:15px;
+    font-family:'Inter',sans-serif; background:#f8f9f8; color:var(--ink); outline:none;
+  }
+  input[type=text]:focus, input[type=tel]:focus{border-color:var(--pitch);}
+  select{
+    width:100%; padding:11px 12px; border-radius:10px; border:1px solid #dde2de; font-size:15px;
+    font-family:'Inter',sans-serif; background:#f8f9f8; color:var(--ink); outline:none;
+    -webkit-appearance:none; appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a847d' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat:no-repeat; background-position:right 12px center; background-size:16px;
+  }
+  select:focus{border-color:var(--pitch);}
+  textarea{
+    width:100%; padding:11px 12px; border-radius:10px; border:1px solid #dde2de; font-size:15px;
+    font-family:'Inter',sans-serif; background:#f8f9f8; color:var(--ink); outline:none;
+    resize:vertical; min-height:80px; line-height:1.4;
+  }
+  textarea:focus{border-color:var(--pitch);}
+  .photo-row{display:flex; align-items:center; gap:14px; margin-top:6px;}
+  .photo-preview{
+    width:64px; height:64px; border-radius:50%; object-fit:cover; background:#eef1ee;
+    border:2px dashed #c9cfc9; display:flex; align-items:center; justify-content:center; color:#9aa39c;
+  }
+  .btn{
+    font-family:'Oswald',sans-serif; font-weight:500; text-transform:uppercase; letter-spacing:.04em;
+    border:none; border-radius:11px; padding:13px; font-size:14px; cursor:pointer; width:100%;
+  }
+  .btn-primary{background:var(--pitch-dark); color:#fff; margin-top:20px;}
+  .btn-primary:active{background:var(--ink);}
+  .btn-outline{background:#fff; color:#7a847d; border:1px solid #dde2de; margin-top:8px;}
+  .btn-file{background:#f0f3f0; color:var(--pitch-dark); border:1px dashed #b7c2ba; font-size:13px; padding:9px;}
+  .btn-danger-text{background:none; color:var(--red); border:none; font-family:'JetBrains Mono',monospace; font-size:13px; margin-top:16px; width:100%; padding:8px; cursor:pointer;}
+
+  /* Stats */
+  .stat-card{
+    background:var(--card-bg); border-radius:14px; padding:12px; margin-bottom:10px;
+    box-shadow:var(--shadow); color:var(--ink);
+  }
+  .stat-card-head{display:flex; align-items:center; gap:12px;}
+  .stat-row{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;}
+  .stat-box{flex:1; min-width:0; border-radius:10px; padding:7px 4px 8px; text-align:center; background:#f2f4f2;}
+  .stat-row.status-counters .stat-box{flex:1 1 30%;}
+  .stat-box.goals{background:#eaf3de;}
+  .stat-box.yellow{background:#fdf1cf;}
+  .stat-box.red{background:#fbe1de;}
+  .stat-box.titular{background:#eaf3de;}
+  .stat-box.suplente{background:#e6f1fb;}
+  .stat-box.no_convocado{background:#eef0ee;}
+  .stat-box.lesionado{background:#fbe1de;}
+  .stat-box.sancionado{background:#fdf1cf;}
+  .stat-box-label{
+    font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.05em; text-transform:uppercase;
+    display:flex; align-items:center; justify-content:center; gap:4px; color:#6b7568;
+  }
+  .stat-box.goals .stat-box-label{color:#3b6d11;}
+  .stat-box.yellow .stat-box-label{color:#7a4f00;}
+  .stat-box.red .stat-box-label{color:#791f1f;}
+  .stat-box.titular .stat-box-label{color:#3b6d11;}
+  .stat-box.suplente .stat-box-label{color:#0c447c;}
+  .stat-box.no_convocado .stat-box-label{color:#5f5e5a;}
+  .stat-box.lesionado .stat-box-label{color:#a32d2d;}
+  .stat-box.sancionado .stat-box-label{color:#7a4f00;}
+  .card-icon{width:11px; height:15px; border-radius:2px; display:inline-block;}
+  .card-icon.yellow{background:#ffb100;}
+  .card-icon.red{background:#e2503f;}
+  .ball-icon{width:11px; height:11px; border-radius:50%; background:#3b6d11; display:inline-block;}
+  .stat-controls{display:flex; align-items:center; justify-content:center; gap:6px; margin-top:5px;}
+  .stat-btn{
+    width:24px; height:24px; border-radius:7px; border:none; background:#fff;
+    box-shadow:0 1px 2px rgba(0,0,0,0.15); font-size:14px; line-height:1;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink);
+  }
+  .stat-btn:active{transform:scale(0.92);}
+  .stat-value{font-family:'JetBrains Mono',monospace; font-weight:500; font-size:16px; min-width:16px;}
+
+  /* Partidos */
+  .stats-summary{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:20px;
+  }
+  .summary-box{
+    background:var(--card-bg); border-radius:12px; padding:10px 6px; text-align:center; color:var(--ink);
+  }
+  .summary-box .sv{font-family:'Oswald',sans-serif; font-weight:600; font-size:22px; line-height:1;}
+  .summary-box .sl{
+    font-family:'JetBrains Mono',monospace; font-size:9px; text-transform:uppercase; letter-spacing:.04em;
+    color:#7a847d; margin-top:4px;
+  }
+  .summary-box.pg .sv{color:#3b6d11;}
+  .summary-box.pe .sv{color:#854f0b;}
+  .summary-box.pp .sv{color:#a32d2d;}
+
+  .match-card{
+    background:var(--card-bg); border-radius:14px; padding:12px 14px; margin-bottom:10px;
+    color:var(--ink); box-shadow:var(--shadow); cursor:pointer;
+  }
+  .match-top{display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .match-rival{font-family:'Oswald',sans-serif; font-weight:500; font-size:16px; text-transform:uppercase;}
+  .match-date{font-family:'JetBrains Mono',monospace; font-size:11px; color:#7a847d; margin-top:2px;}
+  .match-score{font-family:'JetBrains Mono',monospace; font-weight:500; font-size:20px; white-space:nowrap;}
+  .match-badge{
+    font-family:'JetBrains Mono',monospace; font-size:9px; text-transform:uppercase; letter-spacing:.05em;
+    padding:3px 8px; border-radius:20px; margin-top:6px; display:inline-block;
+  }
+  .match-badge.win{background:#eaf3de; color:#3b6d11;}
+  .match-badge.draw{background:#fdf1cf; color:#854f0b;}
+  .match-badge.loss{background:#fbe1de; color:#a32d2d;}
+  .match-badge.pending{background:#eef0ee; color:#7a847d;}
+  .match-analysis-flag{
+    font-family:'JetBrains Mono',monospace; font-size:9px; text-transform:uppercase; letter-spacing:.05em;
+    color:#7a847d; margin-top:6px; margin-left:8px; display:inline-block;
+  }
+
+  .score-inputs{display:flex; align-items:center; gap:10px; margin-top:8px;}
+  .score-inputs input{width:100%; text-align:center; font-family:'JetBrains Mono',monospace; font-size:18px;}
+  .score-vs{font-family:'Oswald',sans-serif; color:#9aa39c; font-size:13px; text-transform:uppercase;}
+
+  .convocatoria-summary{font-size:13px; color:#7a847d; margin:8px 0 14px;}
+  .squad-list{max-height:52vh; overflow-y:auto; margin:10px 0;}
+  .squad-row{
+    display:flex; align-items:center; gap:12px; padding:10px 4px; border-bottom:1px solid #eef1ee; cursor:pointer;
+  }
+  .squad-row:last-child{border-bottom:none;}
+  .squad-row-name{flex:1; font-size:15px; color:var(--ink);}
+  .squad-check{
+    width:24px; height:24px; border-radius:50%; border:2px solid #dde2de; display:flex; align-items:center; justify-content:center;
+    font-size:13px; color:transparent; flex-shrink:0;
+  }
+  .squad-row.checked .squad-check{background:var(--pitch); border-color:var(--pitch); color:#fff;}
+
+  .status-row{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:10px;
+  }
+  .status-pill{
+    text-align:center; padding:7px 4px; border-radius:8px; font-family:'JetBrains Mono',monospace;
+    font-size:9.5px; text-transform:uppercase; letter-spacing:.02em; background:#f0f2f0; color:#8a938c;
+    cursor:pointer; border:1px solid transparent;
+  }
+  .status-pill.status-titular.active{background:#eaf3de; color:#3b6d11; border-color:#c0dd97;}
+  .status-pill.status-suplente.active{background:#e6f1fb; color:#0c447c; border-color:#85b7eb;}
+  .status-pill.status-no_convocado.active{background:#eef0ee; color:#5f5e5a; border-color:#c9cfc9;}
+  .status-pill.status-lesionado.active{background:#fbe1de; color:#a32d2d; border-color:#f09595;}
+  .status-pill.status-sancionado.active{background:#fdf1cf; color:#854f0b; border-color:#ef9f27;}
+
+  .share-actions{display:flex; gap:10px; justify-content:center; padding:14px 24px 0;}
+  .share-btn{
+    background:none; border:1px solid var(--line-faint); color:var(--line-dim);
+    font-family:'JetBrains Mono',monospace; font-size:11px; padding:7px 12px; border-radius:20px; cursor:pointer;
+  }
+  .share-btn:active{background:var(--line-faint);}
+
+  .day-modal-title{font-family:'JetBrains Mono',monospace; font-size:13px; color:#7a847d; margin:-8px 0 14px;}
+  .photo-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px;}
+  .photo-grid img{width:100%; aspect-ratio:1; object-fit:cover; border-radius:10px;}
+  .photo-item{position:relative;}
+  .photo-del{
+    position:absolute; top:4px; right:4px; width:22px; height:22px; border-radius:50%;
+    background:rgba(0,0,0,0.6); color:#fff; border:none; font-size:13px; display:flex;
+    align-items:center; justify-content:center; cursor:pointer;
+  }
+
+  .toast{
+    position:fixed; top:16px; left:50%; transform:translateX(-50%) translateY(-60px); z-index:200;
+    background:var(--ink); color:#fff; padding:10px 18px; border-radius:20px; font-size:13px;
+    font-family:'Inter',sans-serif; transition:transform .25s ease; box-shadow:0 4px 14px rgba(0,0,0,0.3);
+    max-width:85%; text-align:center;
+  }
+  .toast.show{transform:translateX(-50%) translateY(0);}
+
+  .share-note{
+    font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--line-dim); text-align:center;
+    padding:14px 24px 0; line-height:1.5;
+  }
+
+  .spinner{
+    width:26px; height:26px; border:3px solid #e2e6e2; border-top-color:var(--pitch); border-radius:50%;
+    animation:spin .7s linear infinite; margin:20px auto;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
-<div class="app-shell">
-  <header class="top">
-    <div class="eyebrow">Restaurante Begoña</div>
-    <h1 id="mainTitle">Control interno</h1>
-    <div class="sub" id="mainSub">Todo lo del día a día, en un solo sitio</div>
-    <div id="cloudBadge" style="font-size:12px; margin-top:6px; font-weight:600;"></div>
+<div class="field-lines"></div>
+<div class="app">
+
+  <header class="matchhead">
+    <div class="kit-label">Ficha del equipo</div>
+    <input id="teamName" class="team-name" value="Mi Equipo" maxlength="30" placeholder="NOMBRE DEL EQUIPO">
+    <input id="teamCat" class="team-cat" value="Categoría" maxlength="30" placeholder="Categoría (ej. Alevín A)">
   </header>
 
-  <div class="app-switch" id="appSwitch">
-    <button id="btn-appcc" class="active appcc" onclick="setApp('appcc')"><span class="ic">🧾</span>Control APPCC</button>
-    <button id="btn-horario" class="horario" onclick="setApp('horario')"><span class="ic">🕒</span>Control Horario</button>
+  <main>
+    <!-- PLANTILLA -->
+    <div class="view active" id="view-plantilla">
+      <div class="section-title">Plantilla</div>
+      <div id="playersList"></div>
+    </div>
+
+    <!-- ENTRENAMIENTOS -->
+    <div class="view" id="view-entrenos">
+      <div class="section-title">Entrenamientos</div>
+      <div class="cal-head">
+        <button class="cal-nav-btn" id="calPrev">‹</button>
+        <div class="cal-month" id="calMonthLabel">—</div>
+        <button class="cal-nav-btn" id="calNext">›</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+
+    <!-- ESTADISTICAS -->
+    <div class="view" id="view-stats">
+      <div class="section-title">Estadísticas</div>
+      <div id="statsList"></div>
+    </div>
+
+    <!-- PARTIDOS -->
+    <div class="view" id="view-partidos">
+      <div class="section-title">Partidos</div>
+      <div class="stats-summary" id="matchSummary"></div>
+      <div id="matchesList"></div>
+    </div>
+  </main>
+
+  <p class="share-note">Los datos se guardan en la nube y se sincronizan automáticamente: tú y tu compañero veis siempre lo mismo. Los botones de abajo son solo para hacer una copia de seguridad si la necesitas.</p>
+  <div class="share-actions">
+    <button class="share-btn" id="exportBtn">⇩ Exportar datos</button>
+    <button class="share-btn" id="importBtn">⇧ Importar datos</button>
+    <input type="file" id="importFileInput" accept="application/json" style="display:none">
   </div>
-
-  <nav class="tabs" id="tabs"></nav>
-  <div id="appccExportBar" style="padding:0 16px 10px;"></div>
-  <main id="main"></main>
-
-  <footer class="note">Los datos se guardan en este dispositivo por ahora. Cuando conectemos la cuenta, se sincronizarán en la nube para todo el equipo.</footer>
 </div>
 
+<button class="fab" id="fabAdd">+</button>
+
+<nav class="tabbar">
+  <button class="tab active" data-view="plantilla">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1-4 4-6 7.5-6s6.5 2 7.5 6"/></svg>
+    Plantilla
+  </button>
+  <button class="tab" data-view="entrenos">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v3.5M16 3v3.5"/></svg>
+    Entrenos
+  </button>
+  <button class="tab" data-view="stats">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>
+    Stats
+  </button>
+  <button class="tab" data-view="partidos">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
+    Partidos
+  </button>
+</nav>
+
+<!-- Modal jugador -->
+<div class="overlay" id="playerOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="playerModalTitle">Añadir jugador</div>
+    <div class="field-label">Foto</div>
+    <div class="photo-row">
+      <img class="photo-preview" id="photoPreview" src="">
+      <div style="flex:1">
+        <button class="btn btn-file" id="photoPickBtn">Elegir foto</button>
+        <input type="file" id="photoInput" accept="image/*" style="display:none">
+      </div>
+    </div>
+    <div class="field-label">Nombre</div>
+    <input type="text" id="playerNameInput" placeholder="Nombre y apellidos">
+    <div class="field-label">Dorsal (opcional)</div>
+    <input type="text" id="playerNumInput" placeholder="Nº" maxlength="3">
+    <div class="field-label">Posición</div>
+    <select id="playerPositionInput">
+      <option value="">Sin especificar</option>
+      <option value="Portero">Portero</option>
+      <option value="Defensa">Defensa</option>
+      <option value="Lateral">Lateral</option>
+      <option value="Medio">Medio</option>
+      <option value="Extremo">Extremo</option>
+      <option value="Delantero">Delantero</option>
+    </select>
+    <div class="field-label">Teléfono</div>
+    <input type="tel" id="playerPhoneInput" placeholder="600 000 000">
+    <button class="btn btn-primary" id="playerSaveBtn">Guardar</button>
+    <button class="btn btn-outline" id="playerCancelBtn">Cancelar</button>
+    <button class="btn-danger-text" id="playerDeleteBtn" style="display:none">Eliminar jugador</button>
+  </div>
+</div>
+
+<!-- Modal día entreno -->
+<div class="overlay" id="dayOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="dayModalTitle">Entrenamiento</div>
+    <div class="day-modal-title" id="dayModalSub"></div>
+    <div class="field-label">Notas del entrenamiento</div>
+    <textarea id="dayNotesInput" placeholder="Ej: trabajo de posesión, rondos, tiros a puerta..."></textarea>
+    <div class="field-label">Fotos</div>
+    <div class="photo-grid" id="dayPhotoGrid"></div>
+    <button class="btn btn-file" id="dayPhotoPickBtn">Añadir fotos del entreno</button>
+    <input type="file" id="dayPhotoInput" accept="image/*" multiple style="display:none">
+    <button class="btn btn-outline" id="dayCloseBtn">Cerrar</button>
+  </div>
+</div>
+
+<!-- Modal partido -->
+<div class="overlay" id="matchOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="matchModalTitle">Añadir partido</div>
+    <div class="field-label">Rival</div>
+    <input type="text" id="matchRivalInput" placeholder="Nombre del equipo rival">
+    <div class="field-label">Fecha</div>
+    <input type="date" id="matchDateInput">
+    <div class="field-label">Resultado (déjalo vacío si aún no se ha jugado)</div>
+    <div class="score-inputs">
+      <input type="text" inputmode="numeric" id="matchForInput" placeholder="—" maxlength="2">
+      <span class="score-vs">Nosotros — Rival</span>
+      <input type="text" inputmode="numeric" id="matchAgainstInput" placeholder="—" maxlength="2">
+    </div>
+    <div class="field-label">Convocatoria</div>
+    <button class="btn btn-outline" type="button" id="convocatoriaBtn">Gestionar convocatoria</button>
+    <div class="convocatoria-summary" id="convocatoriaSummary">0 jugadores convocados</div>
+    <button class="btn btn-file" type="button" id="downloadConvocatoriaBtn">Descargar / enviar convocatoria (PDF)</button>
+    <div class="field-label">Análisis del partido</div>
+    <textarea id="matchAnalysisInput" placeholder="Ej: buen primer tiempo, faltó pegada arriba, ajustar la defensa..."></textarea>
+    <button class="btn btn-primary" id="matchSaveBtn">Guardar</button>
+    <button class="btn btn-outline" id="matchCancelBtn">Cancelar</button>
+    <button class="btn-danger-text" id="matchDeleteBtn" style="display:none">Eliminar partido</button>
+  </div>
+</div>
+
+<!-- Modal convocatoria -->
+<div class="overlay" id="squadOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Convocatoria</div>
+    <div class="squad-list" id="squadList"></div>
+    <button class="btn btn-primary" id="squadDoneBtn">Listo</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
-/* ================= Shared helpers ================= */
-const DB = {
-  get(key, fallback){ try{ const r = localStorage.getItem('begona_'+key); return r?JSON.parse(r):fallback; }catch(e){return fallback;} },
-  set(key,value){ localStorage.setItem('begona_'+key, JSON.stringify(value)); }
-};
-function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-function pad2(n){ return String(n).padStart(2,'0'); }
-function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
-function monthKey(y,m){ return y+'-'+pad2(m+1); }
-const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-function timeOptions(){
-  const arr = [''];
-  for(let h=0; h<24; h++){ for(let m=0; m<60; m+=15){ arr.push(pad2(h)+':'+pad2(m)); } }
-  return arr;
-}
-const TIME_OPTIONS = timeOptions();
-function timeSelect(value, onchange){
-  return `<select onchange="${onchange}">${TIME_OPTIONS.map(t=>`<option value="${t}" ${t===(value||'')?'selected':''}>${t===''?'-':t}</option>`).join('')}</select>`;
-}
-
-/* ================= Supabase (guardado en la nube) ================= */
-const SUPABASE_URL = 'https://ozksefsaivqwrzcbmmto.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_inkklEU7tvm-bXOOsuPPMQ_y93a90JK';
-const SB_TABLE = 'begona_kv';
-let cloudStatus = 'conectando'; // conectando | ok | error
-
-function sbHeaders(extra){
-  return Object.assign({ apikey: SUPABASE_KEY, Authorization: 'Bearer '+SUPABASE_KEY, 'Content-Type':'application/json' }, extra||{});
-}
-async function sbSet(key, value){
-  try{
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SB_TABLE}?on_conflict=key`, {
-      method:'POST',
-      headers: sbHeaders({ Prefer:'resolution=merge-duplicates' }),
-      body: JSON.stringify([{ key:key, value:value }])
-    });
-    cloudStatus = res.ok ? 'ok' : 'error';
-  }catch(e){ cloudStatus = 'error'; }
-  renderCloudBadge();
-}
-async function sbGetAll(){
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${SB_TABLE}?select=key,value`, { headers: sbHeaders() });
-  if(!res.ok) throw new Error('No se pudo leer de Supabase');
-  return res.json();
-}
-function renderCloudBadge(){
-  const el = document.getElementById('cloudBadge');
-  if(!el) return;
-  const map = { conectando:['⏳','Conectando...','var(--muted)'], ok:['☁️','Guardado en la nube','#3d5c37'], error:['⚠️','Sin conexión, guardado solo en este dispositivo','#8A4650'] };
-  const [ic,txt,color] = map[cloudStatus];
-  el.innerHTML = `<span style="color:${color}">${ic} ${txt}</span>`;
-}
-
-function getLocalValue(key){
-  const map = {
-    appcc_temps: appcc.temps, appcc_diario: appcc.diario, appcc_camaras: appcc.camaras,
-    appcc_limpieza: appcc.limpieza, appcc_anual: appcc.anual, appcc_manip: appcc.manip, appcc_prov: appcc.prov,
-    horario_empleados: empleados, horario_turnos: turnos,
-  };
-  return map[key];
-}
-function applyCloudValue(key, value){
-  if(key==='appcc_temps') appcc.temps = value;
-  else if(key==='appcc_diario') appcc.diario = value;
-  else if(key==='appcc_camaras') appcc.camaras = value;
-  else if(key==='appcc_limpieza') appcc.limpieza = value;
-  else if(key==='appcc_anual') appcc.anual = value;
-  else if(key==='appcc_manip') appcc.manip = value;
-  else if(key==='appcc_prov') appcc.prov = value;
-  else if(key==='horario_empleados') empleados = value;
-  else if(key==='horario_turnos') turnos = value;
-  DB.set(key, value);
-}
-async function initCloudSync(){
-  const allKeys = ['appcc_temps','appcc_diario','appcc_camaras','appcc_limpieza','appcc_anual','appcc_manip','appcc_prov','horario_empleados','horario_turnos'];
-  try{
-    const rows = await sbGetAll();
-    const cloudMap = {};
-    rows.forEach(r => cloudMap[r.key] = r.value);
-    allKeys.forEach(k => {
-      if(cloudMap[k] !== undefined && cloudMap[k] !== null){ applyCloudValue(k, cloudMap[k]); }
-      else { sbSet(k, getLocalValue(k)); }
-    });
-    cloudStatus = 'ok';
-  }catch(e){
-    cloudStatus = 'error';
+(function(){
+  const $ = (id) => document.getElementById(id);
+  let toastTimer;
+  function toast(msg){
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
   }
-  renderCloudBadge();
-  renderAll();
-}
 
-let currentApp = 'appcc';
-function setApp(app){
-  currentApp = app;
-  document.getElementById('btn-appcc').classList.toggle('active', app==='appcc');
-  document.getElementById('btn-horario').classList.toggle('active', app==='horario');
-  document.getElementById('mainTitle').textContent = app==='appcc' ? 'Control APPCC' : 'Control Horario';
-  document.getElementById('mainSub').textContent = app==='appcc' ? 'Registro diario de higiene y seguridad alimentaria' : 'Registro mensual de turnos del equipo';
-  renderAll();
-}
+  /* ====== CONFIGURA AQUÍ TU SUPABASE ======
+     1. Ve a tu proyecto en supabase.com -> Settings -> API
+     2. Copia "Project URL" y pégalo en SUPABASE_URL
+     3. Copia la clave "anon public" y pégala en SUPABASE_ANON_KEY
+     Puedes editar estas dos líneas directamente en GitHub (icono del lápiz) sin volver aquí. */
+  const SUPABASE_URL = 'https://bzjzedwbahgitunoksps.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_GwXGrJorusdd94VeHBH4Lg_C657Knj5';
 
-/* ================= APPCC state ================= */
-const APPCC_TABS = [
-  {id:'temps',    label:'Temperaturas', icon:'🌡️', color:'peach'},
-  {id:'diario',   label:'Diario',       icon:'🍳', color:'butter'},
-  {id:'camaras',  label:'Cámaras',      icon:'❄️', color:'sky'},
-  {id:'limpieza', label:'Limpieza',     icon:'🧽', color:'sage'},
-  {id:'anual',    label:'Control anual',icon:'📋', color:'rose'},
-  {id:'manip',    label:'Manipuladores',icon:'🪪', color:'lavender'},
-  {id:'prov',     label:'Proveedores',  icon:'🚚', color:'clay'},
-];
-let activeAppccTab = 'temps';
-let calYear = new Date().getFullYear();
-let calMonth = new Date().getMonth();
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function defaultLimpiezaItems(list){
-  return list.map(([name,freq]) => ({id:uid(), name, freq, months:Array(12).fill(false), fixed:true}));
-}
-
-let appcc = {
-  temps: DB.get('appcc_temps', {}),
-  diario: DB.get('appcc_diario', {}),
-  camaras: DB.get('appcc_camaras', {}),
-  limpieza: DB.get('appcc_limpieza', {
-    elementos: defaultLimpiezaItems([
-      ['Superficies','Diaria'],['Tablas de corte','Diaria'],['Cuchillos y útiles','Diaria'],
-      ['Vajilla','Diaria'],['Menaje','Diaria'],['Campana','Quincenal'],
-      ['Chapa o plancha','Diaria'],['Fuegos y zona contigua','Diaria'],['Horno','Cada 2 días']
-    ]),
-    maquinaria: defaultLimpiezaItems([
-      ['Picadora','Cuando se usa'],['Cortadora','Diaria'],['Envasadora','Diaria']
-    ]),
-    instalaciones: defaultLimpiezaItems([
-      ['Suelo de cocina',''],['Paredes de cocina',''],['Techo de la cocina',''],
-      ['Lavamanos / Fregadero',''],['Armarios de cocina',''],['Cámaras',''],
-      ['Congeladores',''],['Despensa',''],['Techo del local','']
-    ]),
-  }),
-  anual: DB.get('appcc_anual', {
-    bloques: [
-      {name:'Plan de limpieza y desinfección', items:[
-        {text:'Los productos de limpieza son aptos para uso alimentario y acordes a las necesidades de limpieza', status:'listo'},
-        {text:'Los productos y útiles de limpieza se encuentran correctamente almacenados.', status:'listo'},
-        {text:'Los productos de limpieza se encuentran en sus envases originales o, si se han trasvasado, están correctamente identificados.', status:'listo'},
-        {text:'Se utiliza el lavavajillas con un programa de agua caliente para la vajilla y otros útiles que puedan lavarse en él.', status:'listo'},
-        {text:'El método y frecuencia de limpieza es adecuado para mantener las instalaciones, maquinaria y útiles en condiciones higiénicas.', status:'listo'},
-      ]},
-      {name:'Plan de mantenimiento', items:[
-        {text:'Los equipos e instalaciones se mantienen de forma adecuada.', status:'listo'},
-        {text:'La maquinaria tiene un mantenimiento correcto y se usan los lubricantes y grasas de forma adecuada.', status:'listo'},
-        {text:'Todos los envases y útiles de trabajo se mantienen en buen estado y sin roturas ni fragmentos sueltos.', status:'listo'},
-      ]},
-      {name:'Plan de formación', items:[
-        {text:'El personal ha recibido formación inicial y formación continuada de manipuladores.', status:'listo'},
-        {text:'El personal al que se ha detectado la realización de prácticas incorrectas ha recibido formación adecuada.', status:'listo'},
-        {text:'El personal de mantenimiento está correctamente adiestrado para estas labores.', status:'listo'},
-      ]},
-      {name:'Plan de lucha contra plagas', items:[
-        {text:'No existen indicios de la presencia de insectos ni demás parásitos o animales indeseables.', status:'listo'},
-        {text:'Se dispone de elementos que evitan la presencia de plagas y se mantienen en buen estado.', status:'listo'},
-      ]},
-      {name:'Plan de autocontrol', items:[
-        {text:'Se cumplimentan los registros correctamente.', status:'listo'},
-        {text:'Se adoptan las medidas en caso de detectar incumplimientos.', status:'listo'},
-      ]},
-    ],
-    incidencias: [],
-  }),
-  manip: DB.get('appcc_manip', [
-    {id:uid(), nombre:'Martin Uribarri', pdfData:null, pdfName:null},
-    {id:uid(), nombre:'Nekane Santamaria', pdfData:null, pdfName:null},
-    {id:uid(), nombre:'Aitor Martinez', pdfData:null, pdfName:null},
-    {id:uid(), nombre:'Ricard Espinosa', pdfData:null, pdfName:null},
-    {id:uid(), nombre:'Xabier Uribarri', pdfData:null, pdfName:null},
-  ]),
-  prov: DB.get('appcc_prov', [
-    {id:uid(), nombre:'Pescados y Mariscos Gaizka', direccion:'Mercbilbao puesto 118, 48630 Basauri, Vizcaya', contacto:'Gaizka', telefono:'633307891', vehiculo:'bueno', productos:[]},
-    {id:uid(), nombre:'Conifresh', direccion:'Mercabilbao puesto 106, 48970 Basauri, Vizcaya', contacto:'Oscar', telefono:'944485525', vehiculo:'muybueno', productos:[]},
-    {id:uid(), nombre:'Makro', direccion:'Ctra Foral Bi-1035, Lutxana Erandio 36, 48950 Erandio', contacto:'', telefono:'944711424', vehiculo:'bueno', productos:[]},
-    {id:uid(), nombre:'Valdi', direccion:'Polígono Industrial Granada, Ortuella 485630', contacto:'Marcos', telefono:'946310400', vehiculo:'muybueno', productos:[]},
-    {id:uid(), nombre:'Olalde', direccion:'Iberre zeharbidea 1, 4860 Gorliz', contacto:'Joseba', telefono:'678695228', vehiculo:'muybueno', productos:[]},
-    {id:uid(), nombre:'Panadería La Moderna', direccion:'Panadería Moderna', contacto:'Pedro', telefono:'947347311', vehiculo:'bueno', productos:[]},
-    {id:uid(), nombre:'Celedón', direccion:'Carretera Miranda de Ebro 69-71, Burgos 09200', contacto:'Pedro', telefono:'947347311', vehiculo:'muybueno', productos:[]},
-    {id:uid(), nombre:'BKM', direccion:'Pabellón m5, Txori Erri etorbidea 46 polígono, Berreteaga bidea, Sondika 48150', contacto:'Jose', telefono:'944804543', vehiculo:'muybueno', productos:[]},
-    {id:uid(), nombre:'Okelan', direccion:'Pol. Abendaño · Urdaneta Bidea, 2220800 Zarautz, Gipuzkoa', contacto:'Joxi', telefono:'674155828', vehiculo:'muybueno', productos:[]},
-    {id:uid(), nombre:'Santi', direccion:'', contacto:'', telefono:'', vehiculo:'bueno', productos:[]},
-    {id:uid(), nombre:'Compas Norte', direccion:'', contacto:'', telefono:'', vehiculo:'bueno', productos:[]},
-    {id:uid(), nombre:'Susans', direccion:'', contacto:'', telefono:'', vehiculo:'bueno', productos:[]},
-    {id:uid(), nombre:'Brigitte', direccion:'', contacto:'', telefono:'', vehiculo:'bueno', productos:[]},
-    {id:uid(), nombre:'Uriaguereka', direccion:'', contacto:'', telefono:'', vehiculo:'bueno', productos:[]},
-  ]),
-};
-function persistAppcc(key){ DB.set('appcc_'+key, appcc[key]); sbSet('appcc_'+key, appcc[key]); }
-
-function sectionHead(title, color){
-  return `<div class="section-head"><h2><span class="accent-bar" style="background:var(--${color})"></span>${title}</h2></div>`;
-}
-function calNavHtml(){
-  return `
-    <div class="month-nav">
-      <button onclick="shiftCalMonth(-1)">‹ Anterior</button>
-      <div class="label"><h2>${MESES[calMonth]} ${calYear}</h2></div>
-      <button onclick="shiftCalMonth(1)">Siguiente ›</button>
-    </div>
-  `;
-}
-function shiftCalMonth(delta){
-  calMonth += delta;
-  if(calMonth<0){ calMonth=11; calYear--; }
-  if(calMonth>11){ calMonth=0; calYear++; }
-  renderAll();
-}
-function ensureCalMonth(section, factory){
-  const key = monthKey(calYear, calMonth);
-  if(!appcc[section][key]){
-    const n = daysInMonth(calYear, calMonth);
-    appcc[section][key] = Array.from({length:n}, (_,i)=>factory(i+1));
-    persistAppcc(section);
-  }
-  return appcc[section][key];
-}
-function updCalCell(section, rowId, field, value, isNumber){
-  const key = monthKey(calYear, calMonth);
-  const rows = appcc[section][key];
-  const r = rows.find(x=>x.id===rowId);
-  if(!r) return;
-  r[field] = isNumber ? (value===''?null:parseFloat(value)) : value;
-  persistAppcc(section); renderAll();
-}
-
-/* ---- Temperaturas (calendario del mes, proveedor en desplegable) ---- */
-function renderTemps(){
-  const rows = ensureCalMonth('temps', d => ({id:uid(), dia:d, producto:'', temp:null}));
-  const provOptions = appcc.prov.map(p=>p.nombre);
-  return `
-    ${sectionHead('Temperatura de productos recibidos','peach')}
-    <div class="card" style="background:var(--peach-light); border:none;">
-      <div style="font-size:13px; color:#7a4a2c;">Un renglón por cada día del mes: así se ve enseguida si falta alguno por rellenar.</div>
-    </div>
-    ${calNavHtml()}
-    <div class="table-wrap">
-      <table class="cal">
-        <thead><tr><th>Día</th><th>Producto / Proveedor</th><th>Temp. (°C)</th></tr></thead>
-        <tbody>
-        ${rows.map(r => `
-          <tr>
-            <td class="dia">${r.dia}</td>
-            <td>
-              <select onchange="updCalCell('temps','${r.id}','producto',this.value,false)">
-                <option value="">-</option>
-                ${provOptions.map(nombre => `<option value="${nombre}" ${r.producto===nombre?'selected':''}>${nombre}</option>`).join('')}
-              </select>
-            </td>
-            <td><input type="number" step="0.1" value="${r.temp!=null?r.temp:''}" placeholder="-" onchange="updCalCell('temps','${r.id}','temp',this.value,true)"></td>
-          </tr>
-        `).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-/* ---- Diario (calendario del mes) ---- */
-function renderDiario(){
-  const rows = ensureCalMonth('diario', d => ({id:uid(), dia:d, fritura:'', horneado:'', vapor:'', plancha:'', cambioAceite:false}));
-  return `
-    ${sectionHead('Control diario de cocción','butter')}
-    <div class="card" style="background:var(--butter-light); border:none;">
-      <div style="font-size:13px; color:#6b5620;">Producto y temperatura por método de cocción. Marca la casilla el día que se cambie el aceite de la freidora.</div>
-    </div>
-    ${calNavHtml()}
-    <div class="table-wrap">
-      <table class="cal">
-        <thead><tr><th>Día</th><th>Fritura</th><th>Horneado</th><th>Vapor</th><th>Plancha</th><th>Cambio aceite</th></tr></thead>
-        <tbody>
-        ${rows.map(r => `
-          <tr>
-            <td class="dia">${r.dia}</td>
-            <td><input type="text" value="${r.fritura||''}" placeholder="-" onchange="updCalCell('diario','${r.id}','fritura',this.value,false)"></td>
-            <td><input type="text" value="${r.horneado||''}" placeholder="-" onchange="updCalCell('diario','${r.id}','horneado',this.value,false)"></td>
-            <td><input type="text" value="${r.vapor||''}" placeholder="-" onchange="updCalCell('diario','${r.id}','vapor',this.value,false)"></td>
-            <td><input type="text" value="${r.plancha||''}" placeholder="-" onchange="updCalCell('diario','${r.id}','plancha',this.value,false)"></td>
-            <td><input type="checkbox" style="width:18px;height:18px;" ${r.cambioAceite?'checked':''} onchange="updCalCell('diario','${r.id}','cambioAceite',this.checked,false)"></td>
-          </tr>
-        `).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-/* ---- Camaras (calendario del mes) ---- */
-function renderCamaras(){
-  const rows = ensureCalMonth('camaras', d => ({id:uid(), dia:d, c1:null,c2:null,c3:null,c4:null,c5:null}));
-  return `
-    ${sectionHead('Temperatura de cámaras','sky')}
-    <div class="card" style="background:var(--sky-light); border:none;">
-      <div style="font-size:13px; color:#2c5570;">Temperatura diaria de las 5 cámaras del restaurante.</div>
-    </div>
-    ${calNavHtml()}
-    <div class="table-wrap">
-      <table class="cal">
-        <thead><tr><th>Día</th><th>Cám. 1</th><th>Cám. 2</th><th>Cám. 3</th><th>Cám. 4</th><th>Cám. 5</th></tr></thead>
-        <tbody>
-        ${rows.map(r => `
-          <tr>
-            <td class="dia">${r.dia}</td>
-            ${[1,2,3,4,5].map(n=>`<td><input type="number" step="0.1" value="${r['c'+n]!=null?r['c'+n]:''}" placeholder="-" onchange="updCalCell('camaras','${r.id}','c${n}',this.value,true)"></td>`).join('')}
-          </tr>
-        `).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-/* ---- Limpieza (items por defecto fijos, no se pueden borrar) ---- */
-let openLimpiezaItems = {};
-function renderLimpiezaCat(catKey, title){
-  const items = appcc.limpieza[catKey];
-  return `
-    <div class="limpieza-cat">
-      <div class="section-head" style="margin-bottom:6px;"><h2 style="font-size:16px;">${title}</h2></div>
-      ${items.map(it => `
-        <div class="item-row">
-          <div class="item-head" onclick="toggleLimpiezaItem('${it.id}')">
-            <div class="left">
-              <span class="name">${it.name || '(sin nombre)'}</span>
-              ${it.freq ? `<span class="freq">${it.freq}</span>` : ''}
-            </div>
-            <span class="chev">${openLimpiezaItems[it.id] ? '▲' : '▼'}</span>
-          </div>
-          <div class="item-edit-row">
-            <input type="text" value="${it.name}" placeholder="Nombre" onclick="event.stopPropagation()" onchange="updLimpiezaField('${catKey}','${it.id}','name',this.value)">
-            <input type="text" value="${it.freq}" placeholder="Frecuencia" onclick="event.stopPropagation()" style="max-width:120px;" onchange="updLimpiezaField('${catKey}','${it.id}','freq',this.value)">
-            ${it.fixed
-              ? `<span class="fixed-pin">🔒 fijo</span>`
-              : `<button class="btn-del" onclick="event.stopPropagation(); delLimpiezaItem('${catKey}','${it.id}')">🗑</button>`}
-          </div>
-          <div class="months ${openLimpiezaItems[it.id]?'open':''}">
-            ${MESES.map((m,i)=>`
-              <label class="month-chip ${it.months[i]?'done':''}" onclick="event.stopPropagation()">
-                <input type="checkbox" ${it.months[i]?'checked':''} onchange="toggleMonth('${catKey}','${it.id}',${i})">
-                ${m.slice(0,3)}
-              </label>
-            `).join('')}
-          </div>
-        </div>
-      `).join('')}
-      <button class="btn btn-ghost btn-sm" onclick="addLimpiezaItem('${catKey}')">+ Añadir elemento</button>
-    </div>
-  `;
-}
-function renderLimpieza(){
-  return `
-    ${sectionHead('Control de limpieza','sage')}
-    <div class="card" style="background:var(--sage-light); border:none;">
-      <div style="font-size:13px; color:#3d5c37;">Marca el mes cuando se haya realizado la limpieza de cada elemento. Los elementos con 🔒 son fijos y no se pueden eliminar, solo añadir nuevos.</div>
-    </div>
-    ${renderLimpiezaCat('elementos','Elementos / Utillaje')}
-    ${renderLimpiezaCat('maquinaria','Maquinaria')}
-    ${renderLimpiezaCat('instalaciones','Instalaciones')}
-  `;
-}
-function toggleLimpiezaItem(id){ openLimpiezaItems[id] = !openLimpiezaItems[id]; renderAll(); }
-function toggleMonth(catKey, id, monthIndex){
-  const it = appcc.limpieza[catKey].find(x=>x.id===id);
-  it.months[monthIndex] = !it.months[monthIndex];
-  persistAppcc('limpieza'); renderAll();
-}
-function updLimpiezaField(catKey, id, field, value){
-  const it = appcc.limpieza[catKey].find(x=>x.id===id);
-  it[field] = value; persistAppcc('limpieza');
-}
-function addLimpiezaItem(catKey){
-  appcc.limpieza[catKey].push({id:uid(), name:'Nuevo elemento', freq:'', months:Array(12).fill(false), fixed:false});
-  persistAppcc('limpieza'); renderAll();
-}
-function delLimpiezaItem(catKey, id){
-  const it = appcc.limpieza[catKey].find(x=>x.id===id);
-  if(it && it.fixed) return;
-  appcc.limpieza[catKey] = appcc.limpieza[catKey].filter(x=>x.id!==id);
-  persistAppcc('limpieza'); renderAll();
-}
-
-/* ---- Anual ---- */
-function renderAnual(){
-  const a = appcc.anual;
-  return `
-    ${sectionHead('Control anual','rose')}
-    <div class="card" style="background:var(--rose-light); border:none;">
-      <div style="font-size:13px; color:#7a3f47;">Revisión anual de los planes de autocontrol. Toca el estado para cambiarlo.</div>
-    </div>
-    ${a.bloques.map((b,bi) => `
-      <div class="bloque-title">${b.name}</div>
-      ${b.items.map((it,ii) => `
-        <div class="anual-item">
-          <span class="txt">${it.text}</span>
-          <button class="status-pill ${it.status==='listo'?'status-listo':'status-progreso'}"
-            onclick="toggleAnualStatus(${bi},${ii})">${it.status==='listo'?'Listo':'En progreso'}</button>
-        </div>
-      `).join('')}
-      <div class="add-producto" style="margin-bottom:14px;">
-        <input type="text" id="newitem-${bi}" placeholder="Añadir punto a este bloque...">
-        <button class="btn btn-add btn-sm" onclick="addAnualItem(${bi})">+</button>
-      </div>
-    `).join('')}
-
-    <div class="bloque-title">Incidencias</div>
-    ${a.incidencias.length===0 ? `<div class="empty-hint">Sin incidencias registradas.</div>` : a.incidencias.slice().reverse().map(inc => `
-      <div class="anual-item">
-        <span class="txt"><strong>${inc.fecha}:</strong> ${inc.texto}</span>
-        <button class="btn-del" onclick="delIncidencia('${inc.id}')">🗑</button>
-      </div>
-    `).join('')}
-    <div class="card" style="margin-top:10px;">
-      <div class="row-grid two-col-desktop">
-        <div><label class="field-label">Fecha</label><input type="date" id="incFecha" value="${new Date().toISOString().slice(0,10)}"></div>
-        <div><label class="field-label">Descripción</label><input type="text" id="incTexto" placeholder="Describe la incidencia..."></div>
-      </div>
-      <button class="btn btn-add" onclick="addIncidencia()">+ Registrar incidencia</button>
-    </div>
-  `;
-}
-function toggleAnualStatus(bi, ii){
-  const it = appcc.anual.bloques[bi].items[ii];
-  it.status = it.status==='listo' ? 'progreso' : 'listo';
-  persistAppcc('anual'); renderAll();
-}
-function addAnualItem(bi){
-  const inp = document.getElementById('newitem-'+bi);
-  if(!inp.value.trim()) return;
-  appcc.anual.bloques[bi].items.push({text:inp.value.trim(), status:'progreso'});
-  persistAppcc('anual'); renderAll();
-}
-function addIncidencia(){
-  const fecha = document.getElementById('incFecha').value;
-  const texto = document.getElementById('incTexto').value.trim();
-  if(!texto) return;
-  appcc.anual.incidencias.push({id:uid(), fecha, texto});
-  persistAppcc('anual'); renderAll();
-}
-function delIncidencia(id){ appcc.anual.incidencias = appcc.anual.incidencias.filter(i=>i.id!==id); persistAppcc('anual'); renderAll(); }
-
-/* ---- Manipuladores ---- */
-function renderManip(){
-  const list = appcc.manip;
-  return `
-    ${sectionHead('Manipuladores de alimentos','lavender')}
-    <div class="card" style="background:var(--lavender-light); border:none;">
-      <div style="font-size:13px; color:#4A3B5C;">Carnet de manipulador de cada empleado (PDF).</div>
-    </div>
-    <div class="manip-grid">
-    ${list.map(p => `
-      <div class="manip-card">
-        <div class="manip-avatar">🪪</div>
-        <input type="text" value="${p.nombre}" onchange="updManipField('${p.id}','nombre',this.value)">
-        <label class="file-btn">
-          ${p.pdfData ? 'Cambiar PDF' : 'Subir PDF'}
-          <input type="file" accept="application/pdf" onchange="uploadPdf('${p.id}', this)">
-        </label>
-        ${p.pdfData ? `<a class="pdf-link" href="${p.pdfData}" target="_blank" download="${p.pdfName||'carnet.pdf'}">Ver ${p.pdfName||'PDF'}</a>` : `<span style="font-size:11.5px;color:var(--muted);">Sin carnet</span>`}
-        <button class="btn-del" onclick="delManip('${p.id}')">🗑</button>
-      </div>
-    `).join('')}
-    </div>
-    <div style="margin-top:14px;"><button class="btn btn-add" onclick="addManip()">+ Añadir empleado</button></div>
-  `;
-}
-function updManipField(id, field, value){ const p = appcc.manip.find(x=>x.id===id); p[field]=value; persistAppcc('manip'); }
-function uploadPdf(id, input){
-  const file = input.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const p = appcc.manip.find(x=>x.id===id);
-    p.pdfData = e.target.result; p.pdfName = file.name;
-    persistAppcc('manip'); renderAll();
-  };
-  reader.readAsDataURL(file);
-}
-function addManip(){ appcc.manip.push({id:uid(), nombre:'Nuevo empleado', pdfData:null, pdfName:null}); persistAppcc('manip'); renderAll(); }
-function delManip(id){ appcc.manip = appcc.manip.filter(p=>p.id!==id); persistAppcc('manip'); renderAll(); }
-
-/* ---- Proveedores ---- */
-function renderProv(){
-  const list = appcc.prov;
-  return `
-    ${sectionHead('Proveedores','clay')}
-    <div class="card" style="background:var(--clay-light); border:none;">
-      <div style="font-size:13px; color:#6b4423;">Datos de contacto, estado del vehículo y productos de cada proveedor. Se usan también en el desplegable de Temperaturas.</div>
-    </div>
-    <button class="btn btn-add" onclick="addProv()">+ Añadir proveedor</button>
-    <div style="margin-top:12px;">
-    ${list.map(p => `
-      <div class="card prov-card">
-        <div class="prov-top">
-          <input type="text" class="prov-name" value="${p.nombre}" style="border:none; background:transparent; padding:0; font-weight:700; font-size:15px;" onchange="updProvField('${p.id}','nombre',this.value)">
-          <button class="btn-del" onclick="delProv('${p.id}')">🗑</button>
-        </div>
-        <div class="row-grid two-col-desktop" style="margin-top:8px;">
-          <div><label class="field-label">Dirección</label><input type="text" value="${p.direccion||''}" onchange="updProvField('${p.id}','direccion',this.value)"></div>
-          <div><label class="field-label">Persona de contacto</label><input type="text" value="${p.contacto||''}" onchange="updProvField('${p.id}','contacto',this.value)"></div>
-          <div><label class="field-label">Teléfono</label><input type="tel" value="${p.telefono||''}" onchange="updProvField('${p.id}','telefono',this.value)"></div>
-          <div>
-            <label class="field-label">Estado del vehículo</label>
-            <select class="vehiculo-select veh-${p.vehiculo}" onchange="updProvField('${p.id}','vehiculo',this.value)">
-              <option value="malo" ${p.vehiculo==='malo'?'selected':''}>Malo</option>
-              <option value="bueno" ${p.vehiculo==='bueno'?'selected':''}>Bueno</option>
-              <option value="muybueno" ${p.vehiculo==='muybueno'?'selected':''}>Muy bueno</option>
-            </select>
-          </div>
-        </div>
-        <label class="field-label" style="margin-top:8px;">Productos</label>
-        <div class="productos-list">
-          ${p.productos.map((prod,i) => `<span class="producto-chip">${prod}<button onclick="delProducto('${p.id}',${i})">✕</button></span>`).join('')}
-        </div>
-        <div class="add-producto">
-          <input type="text" id="newprod-${p.id}" placeholder="Añadir producto...">
-          <button class="btn btn-add btn-sm" onclick="addProducto('${p.id}')">+</button>
-        </div>
-      </div>
-    `).join('')}
-    </div>
-  `;
-}
-function updProvField(id, field, value){
-  const p = appcc.prov.find(x=>x.id===id); p[field]=value; persistAppcc('prov');
-  if(field==='vehiculo' || field==='nombre') renderAll();
-}
-function addProv(){ appcc.prov.push({id:uid(), nombre:'Nuevo proveedor', direccion:'', contacto:'', telefono:'', vehiculo:'bueno', productos:[]}); persistAppcc('prov'); renderAll(); }
-function delProv(id){ appcc.prov = appcc.prov.filter(p=>p.id!==id); persistAppcc('prov'); renderAll(); }
-function addProducto(provId){
-  const inp = document.getElementById('newprod-'+provId);
-  if(!inp.value.trim()) return;
-  const p = appcc.prov.find(x=>x.id===provId);
-  p.productos.push(inp.value.trim());
-  persistAppcc('prov'); renderAll();
-}
-function delProducto(provId, idx){
-  const p = appcc.prov.find(x=>x.id===provId);
-  p.productos.splice(idx,1);
-  persistAppcc('prov'); renderAll();
-}
-
-/* ================= HORARIO state ================= */
-let empleados = DB.get('horario_empleados', [
-  {id:uid(), nombre:'Martin Uribarri'},
-  {id:uid(), nombre:'Nekane Santamaria'},
-  {id:uid(), nombre:'Aitor Martinez'},
-  {id:uid(), nombre:'Ricard Espinosa'},
-  {id:uid(), nombre:'Xabier Uribarri'},
-]);
-let turnos = DB.get('horario_turnos', {});
-let horYear = new Date().getFullYear();
-let horMonth = new Date().getMonth();
-let horExpanded = {};
-let pendingDeleteEmpId = null;
-let shareOpenFor = null;
-let nuevoEmpNombre = '';
-
-function persistEmpleados(){ DB.set('horario_empleados', empleados); sbSet('horario_empleados', empleados); }
-function persistTurnos(){ DB.set('horario_turnos', turnos); sbSet('horario_turnos', turnos); }
-
-function getMonthRows(empId, y, m){
-  const key = monthKey(y,m);
-  if(!turnos[empId]) turnos[empId] = {};
-  if(!turnos[empId][key]){
-    const n = daysInMonth(y,m);
-    turnos[empId][key] = Array.from({length:n}, (_,i)=>({id:uid(), dia:i+1, entM:'',salM:'',horasM:'',entN:'',salN:'',horasN:''}));
-    persistTurnos();
-  }
-  return turnos[empId][key];
-}
-function rowTotal(r){ return (parseFloat(r.horasM)||0) + (parseFloat(r.horasN)||0); }
-function monthTotal(rows){ return rows.reduce((s,r)=>s+rowTotal(r),0); }
-
-function renderHorarioTable(empId){
-  const rows = getMonthRows(empId, horYear, horMonth);
-  const total = monthTotal(rows);
-  return `
-    <div class="total-card">
-      <div class="lbl">Total del mes</div>
-      <div class="num">${total.toFixed(1)}</div>
-      <div class="unit">horas trabajadas</div>
-      <button class="pdf-btn" onclick="exportPDFFor('${empId}')">📄 Exportar PDF</button>
-    </div>
-    <div class="table-wrap">
-      <table class="cal">
-        <thead><tr><th>Día</th><th>Ent.M</th><th>Sal.M</th><th>Hs.M</th><th>Ent.N</th><th>Sal.N</th><th>Hs.N</th><th>Total</th></tr></thead>
-        <tbody>
-        ${rows.map(r => `
-          <tr>
-            <td class="dia">${r.dia}</td>
-            <td>${timeSelect(r.entM, `updCell('${empId}','${r.id}','entM',this.value)`)}</td>
-            <td>${timeSelect(r.salM, `updCell('${empId}','${r.id}','salM',this.value)`)}</td>
-            <td><input type="number" step="0.5" value="${r.horasM||''}" placeholder="0" onchange="updCell('${empId}','${r.id}','horasM',this.value)"></td>
-            <td>${timeSelect(r.entN, `updCell('${empId}','${r.id}','entN',this.value)`)}</td>
-            <td>${timeSelect(r.salN, `updCell('${empId}','${r.id}','salN',this.value)`)}</td>
-            <td><input type="number" step="0.5" value="${r.horasN||''}" placeholder="0" onchange="updCell('${empId}','${r.id}','horasN',this.value)"></td>
-            <td class="total">${rowTotal(r).toFixed(1)}</td>
-          </tr>
-        `).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-function updCell(empId, rowId, field, value){
-  const rows = getMonthRows(empId, horYear, horMonth);
-  const r = rows.find(x=>x.id===rowId);
-  if(!r) return;
-  r[field] = value;
-  persistTurnos(); renderAll();
-}
-function shiftHorMonth(delta){
-  horMonth += delta;
-  if(horMonth<0){ horMonth=11; horYear--; }
-  if(horMonth>11){ horMonth=0; horYear++; }
-  renderAll();
-}
-function toggleHorEmp(id){ horExpanded[id] = !horExpanded[id]; shareOpenFor=null; renderAll(); }
-
-function buildEmpLink(id){
-  const url = new URL(window.location.href);
-  url.search = '';
-  url.searchParams.set('emp', id);
-  url.searchParams.set('modo', 'empleado');
-  return url.toString();
-}
-function toggleShare(id){ shareOpenFor = (shareOpenFor===id) ? null : id; renderAll(); }
-function copyShareLink(id){
-  const link = buildEmpLink(id);
-  const el = document.getElementById('sharelink-'+id);
-  if(el){ el.select(); el.setSelectionRange(0, 99999); }
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(link).catch(()=>{});
-  }
-  const btn = document.getElementById('copybtn-'+id);
-  if(btn){ btn.textContent = '¡Copiado!'; setTimeout(()=>{ btn.textContent='Copiar enlace'; }, 2000); }
-}
-
-function renderHorario(){
-  const params = new URLSearchParams(window.location.search);
-  const lockId = params.get('emp');
-  const isLockMode = params.get('modo')==='empleado' && lockId;
-
-  if(isLockMode){
-    const emp = empleados.find(e=>e.id===lockId);
-    if(!emp){
-      return `<div class="empty-hint">Este enlace no corresponde a ningún empleado guardado en este dispositivo.</div>`;
+  async function storeSet(key, value){
+    try{
+      const { error } = await sb.from('team_data').upsert({ key, value, updated_at: new Date().toISOString() });
+      if(error){ console.error(error); toast('No se pudo guardar (revisa la conexión con Supabase).'); return null; }
+      return true;
+    }catch(e){
+      console.error(e);
+      toast('No se pudo guardar (revisa la conexión con Supabase).');
+      return null;
     }
-    return `
-      <div class="lock-banner">
-        <span>👤 Horario de <strong>${emp.nombre}</strong></span>
-        <a href="${window.location.pathname}">Ver panel completo</a>
-      </div>
-      <div class="month-nav">
-        <button onclick="shiftHorMonth(-1)">‹ Anterior</button>
-        <div class="label"><h2>${MESES[horMonth]} ${horYear}</h2></div>
-        <button onclick="shiftHorMonth(1)">Siguiente ›</button>
-      </div>
-      ${renderHorarioTable(emp.id)}
-    `;
+  }
+  async function storeGet(key){
+    try{
+      const { data, error } = await sb.from('team_data').select('value').eq('key', key).maybeSingle();
+      if(error){ console.error(error); return null; }
+      return data ? data.value : null;
+    }catch(e){
+      return null;
+    }
+  }
+  async function storeListByPrefix(prefix){
+    try{
+      const { data, error } = await sb.from('team_data').select('key,value').like('key', prefix + '%');
+      if(error){ console.error(error); return []; }
+      return data || [];
+    }catch(e){
+      return [];
+    }
   }
 
-  return `
-    <div class="card" style="background:var(--sky-light); border:none;">
-      <div style="font-size:13px; color:#2c5570;">Toca un nombre para ver y editar su calendario del mes. Los días del mes ya salen puestos.</div>
-    </div>
-    <div class="month-nav">
-      <button onclick="shiftHorMonth(-1)">‹ Anterior</button>
-      <div class="label"><h2>${MESES[horMonth]} ${horYear}</h2></div>
-      <button onclick="shiftHorMonth(1)">Siguiente ›</button>
-    </div>
-    ${empleados.length===0 ? `<div class="empty-hint">No hay empleados todavía. Añade el primero abajo.</div>` : ''}
-    ${empleados.map(e => {
-      const rows = getMonthRows(e.id, horYear, horMonth);
-      const total = monthTotal(rows);
-      let flag='flag-ok', flagText='Normal';
-      if(total===0){ flag='flag-low'; flagText='Sin horas'; }
-      else if(total<60){ flag='flag-low'; flagText='Pocas horas'; }
-      else if(total>190){ flag='flag-high'; flagText='Muchas horas'; }
-      return `
-      <div class="card">
-        <div class="admin-emp-card">
-          <div class="emp-actions" onclick="toggleHorEmp('${e.id}')">
-            <div>
-              <input type="text" class="name-input" value="${e.nombre}" onclick="event.stopPropagation()" onchange="renameEmpleado('${e.id}', this.value)">
-              <div class="hrs">${total.toFixed(1)} horas este mes</div>
-            </div>
-          </div>
-          <span class="badge-flag ${flag}">${flagText}</span>
-        </div>
-        ${horExpanded[e.id] ? `
-          ${renderHorarioTable(e.id)}
-          <div class="emp-toolbar">
-            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); toggleShare('${e.id}')">📤 Enviar a ${e.nombre.split(' ')[0]}</button>
-            <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); requestDeleteEmpleado('${e.id}')">${pendingDeleteEmpId===e.id ? '⚠️ Toca para confirmar' : '🗑 Eliminar empleado'}</button>
-          </div>
-          ${shareOpenFor===e.id ? `
-            <div class="share-box">
-              <label class="field-label">Enlace personal de ${e.nombre}</label>
-              <input id="sharelink-${e.id}" type="text" readonly value="${buildEmpLink(e.id)}" onclick="this.select()">
-              <button id="copybtn-${e.id}" class="btn btn-add btn-sm" style="margin-top:8px;" onclick="copyShareLink('${e.id}')">Copiar enlace</button>
-              <div class="hint">Envíaselo por WhatsApp o donde prefieras. Cuando la web esté publicada en internet (GitHub Pages), este enlace abrirá directamente su horario en el móvil.</div>
-            </div>
-          ` : ''}
-        ` : ''}
-      </div>
-    `}).join('')}
-
-    <div class="card">
-      <label class="field-label">Añadir empleado nuevo</label>
-      <div style="display:flex; gap:8px;">
-        <input type="text" id="nuevoEmpInput" placeholder="Nombre y apellido">
-        <button class="btn btn-add" onclick="addEmpleado()">+ Añadir</button>
-      </div>
-    </div>
-  `;
-}
-function addEmpleado(){
-  const inp = document.getElementById('nuevoEmpInput');
-  const nombre = inp ? inp.value.trim() : '';
-  if(!nombre) return;
-  empleados.push({id:uid(), nombre});
-  persistEmpleados(); renderAll();
-}
-function renameEmpleado(id, nuevoNombre){
-  const e = empleados.find(x=>x.id===id);
-  if(!e || !nuevoNombre.trim()) return;
-  e.nombre = nuevoNombre.trim();
-  persistEmpleados(); renderAll();
-}
-function requestDeleteEmpleado(id){
-  if(pendingDeleteEmpId===id){
-    empleados = empleados.filter(e=>e.id!==id);
-    delete turnos[id];
-    persistEmpleados(); persistTurnos();
-    pendingDeleteEmpId = null;
-    renderAll();
-  } else {
-    pendingDeleteEmpId = id;
-    renderAll();
-    setTimeout(()=>{ if(pendingDeleteEmpId===id){ pendingDeleteEmpId=null; renderAll(); } }, 4000);
+  async function exportData(){
+    const trainings = {};
+    (await storeListByPrefix('trainings:')).forEach(row => trainings[row.key] = row.value);
+    const data = {
+      teamInfo: await storeGet('team-info'),
+      players: await storeGet('players'),
+      stats: await storeGet('stats'),
+      matches: await storeGet('matches'),
+      trainings
+    };
+    const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mi-equipo-copia-seguridad.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    toast('Copia de seguridad descargada');
   }
-}
-function exportPDFFor(empId){
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  const emp = empleados.find(e=>e.id===empId);
-  const rows = getMonthRows(empId, horYear, horMonth);
-  const total = monthTotal(rows);
 
-  doc.setFont('helvetica','bold'); doc.setFontSize(16);
-  doc.text('Restaurante Begoña — Control Horario', 14, 18);
-  doc.setFontSize(12);
-  doc.text(`${emp ? emp.nombre : ''}`, 14, 26);
-  doc.text(`${MESES[horMonth]} ${horYear}`, 14, 33);
-  doc.setFont('helvetica','normal'); doc.setFontSize(11);
-  doc.text(`Total del mes: ${total.toFixed(1)} horas`, 14, 41);
+  async function importDataFile(file){
+    try{
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if(data.teamInfo) await storeSet('team-info', data.teamInfo);
+      if(data.players) await storeSet('players', data.players);
+      if(data.stats) await storeSet('stats', data.stats);
+      if(data.matches) await storeSet('matches', data.matches);
+      if(data.trainings){
+        for(const k of Object.keys(data.trainings)){
+          await storeSet(k, data.trainings[k]);
+        }
+      }
+      toast('Datos importados. Actualizando...');
+      setTimeout(()=>location.reload(), 900);
+    }catch(e){
+      toast('El archivo no es válido.');
+    }
+  }
 
-  let y = 52;
-  doc.setFontSize(9); doc.setFont('helvetica','bold');
-  const headers = ['Día','Ent.M','Sal.M','Hs.M','Ent.N','Sal.N','Hs.N','Total'];
-  const colX = [14,32,50,68,84,102,120,138];
-  headers.forEach((h,i)=>doc.text(h, colX[i], y));
-  y+=6;
-  doc.setFont('helvetica','normal');
-  rows.forEach(r=>{
-    if(y>280){ doc.addPage(); y=20; }
-    const vals = [r.dia, r.entM||'-', r.salM||'-', r.horasM||'0', r.entN||'-', r.salN||'-', r.horasN||'0', rowTotal(r).toFixed(1)];
-    vals.forEach((v,i)=>doc.text(String(v), colX[i], y));
-    y+=6;
+  $('exportBtn').addEventListener('click', exportData);
+  $('importBtn').addEventListener('click', ()=> $('importFileInput').click());
+  $('importFileInput').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(file) importDataFile(file);
+    e.target.value = '';
   });
-  doc.save(`horario_${emp?emp.nombre.replace(/\s+/g,'_'):'empleado'}_${MESES[horMonth]}_${horYear}.pdf`);
-}
 
-/* ---- Informe completo APPCC en PDF (por departamentos, para inspección de Sanidad) ---- */
-function exportAppccPDF(){
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  const pageH = 290;
-  let y = 20;
+  /* ---------- Team header ---------- */
+  const teamNameInput = $('teamName');
+  const teamCatInput = $('teamCat');
+  let teamSaveTimer;
+  function scheduleTeamSave(){
+    clearTimeout(teamSaveTimer);
+    teamSaveTimer = setTimeout(async ()=>{
+      await storeSet('team-info', {name: teamNameInput.value || 'Mi Equipo', category: teamCatInput.value || ''});
+    }, 500);
+  }
+  teamNameInput.addEventListener('input', scheduleTeamSave);
+  teamCatInput.addEventListener('input', scheduleTeamSave);
 
-  function checkPage(needed){
-    if(y + needed > pageH){ doc.addPage(); y = 20; }
-  }
-  function coverTitle(){
-    doc.setFont('helvetica','bold'); doc.setFontSize(18);
-    doc.text('Restaurante Begoña', 14, y); y+=8;
-    doc.setFontSize(13); doc.setFont('helvetica','normal');
-    doc.text('Informe de Control APPCC', 14, y); y+=6;
-    doc.setFontSize(10); doc.setTextColor(120);
-    doc.text('Generado el ' + new Date().toLocaleDateString('es-ES'), 14, y);
-    doc.setTextColor(0); y+=12;
-  }
-  function deptHeader(title){
-    checkPage(16);
-    doc.setFillColor(235,225,205);
-    doc.rect(14, y-5, 182, 9, 'F');
-    doc.setFont('helvetica','bold'); doc.setFontSize(12);
-    doc.text(title, 16, y+1);
-    y += 12;
-    doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
-  }
-  function line(text){
-    checkPage(6);
-    doc.text(text, 14, y);
-    y += 5.5;
-  }
-  function smallNote(text){
-    checkPage(6);
-    doc.setTextColor(120); doc.setFontSize(8.5);
-    doc.text(text, 14, y);
-    doc.setTextColor(0); doc.setFontSize(9.5);
-    y += 5.5;
+  async function loadTeamInfo(){
+    const info = await storeGet('team-info');
+    if(info){
+      teamNameInput.value = info.name || 'Mi Equipo';
+      teamCatInput.value = info.category || '';
+    }
   }
 
-  coverTitle();
-
-  // Temperaturas
-  deptHeader(`1. Temperatura de productos recibidos — ${MESES[calMonth]} ${calYear}`);
-  const tRows = appcc.temps[monthKey(calYear,calMonth)] || [];
-  const tFilled = tRows.filter(r => r.producto || r.temp!=null);
-  if(tFilled.length===0){ smallNote('Sin registros este mes.'); }
-  tFilled.forEach(r => line(`Día ${r.dia}: ${r.producto||'-'}  |  ${r.temp!=null?r.temp+' °C':'-'}`));
-  y += 4;
-
-  // Diario
-  deptHeader(`2. Control diario de cocción — ${MESES[calMonth]} ${calYear}`);
-  const dRows = appcc.diario[monthKey(calYear,calMonth)] || [];
-  const dFilled = dRows.filter(r => r.fritura||r.horneado||r.vapor||r.plancha||r.cambioAceite);
-  if(dFilled.length===0){ smallNote('Sin registros este mes.'); }
-  dFilled.forEach(r => {
-    line(`Día ${r.dia}: Fritura ${r.fritura||'-'} | Horneado ${r.horneado||'-'} | Vapor ${r.vapor||'-'} | Plancha ${r.plancha||'-'}${r.cambioAceite?' | Cambio de aceite ✔':''}`);
-  });
-  y += 4;
-
-  // Camaras
-  deptHeader(`3. Temperatura de cámaras — ${MESES[calMonth]} ${calYear}`);
-  const cRows = appcc.camaras[monthKey(calYear,calMonth)] || [];
-  const cFilled = cRows.filter(r => [r.c1,r.c2,r.c3,r.c4,r.c5].some(v=>v!=null));
-  if(cFilled.length===0){ smallNote('Sin registros este mes.'); }
-  cFilled.forEach(r => line(`Día ${r.dia}: C1 ${r.c1??'-'} | C2 ${r.c2??'-'} | C3 ${r.c3??'-'} | C4 ${r.c4??'-'} | C5 ${r.c5??'-'}`));
-  y += 4;
-
-  // Limpieza
-  deptHeader('4. Control de limpieza');
-  [['elementos','Elementos / Utillaje'],['maquinaria','Maquinaria'],['instalaciones','Instalaciones']].forEach(([key,label])=>{
-    checkPage(8);
-    doc.setFont('helvetica','bold'); doc.text(label, 14, y); y+=5.5;
-    doc.setFont('helvetica','normal');
-    appcc.limpieza[key].forEach(it => {
-      const doneMonths = MESES.filter((m,i)=>it.months[i]).map(m=>m.slice(0,3));
-      line(`${it.name}${it.freq?' ('+it.freq+')':''}: ${doneMonths.length ? doneMonths.join(', ') : 'sin marcar'}`);
+  /* ---------- Tabs ---------- */
+  document.querySelectorAll('.tab').forEach(tabBtn=>{
+    tabBtn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+      tabBtn.classList.add('active');
+      $('view-'+tabBtn.dataset.view).classList.add('active');
+      $('fabAdd').style.display = (tabBtn.dataset.view === 'plantilla' || tabBtn.dataset.view === 'partidos') ? 'flex' : 'none';
+      if(tabBtn.dataset.view === 'stats') renderStats();
+      if(tabBtn.dataset.view === 'partidos') renderMatches();
     });
-    y += 3;
   });
 
-  // Anual
-  deptHeader('5. Control anual');
-  appcc.anual.bloques.forEach(b => {
-    checkPage(8);
-    doc.setFont('helvetica','bold'); doc.text(b.name, 14, y); y+=5.5;
+  /* ---------- Image compression ---------- */
+  function compressImage(file, maxDim, quality){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = (e)=>{
+        const img = new Image();
+        img.onload = ()=>{
+          let w = img.width, h = img.height;
+          if(w > h && w > maxDim){ h = Math.round(h * maxDim / w); w = maxDim; }
+          else if(h > maxDim){ w = Math.round(w * maxDim / h); h = maxDim; }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /* ---------- Players ---------- */
+  let players = [];
+  let editingPlayerId = null;
+  let pendingPhotoData = null;
+
+  function uid(){ return 'p' + Date.now() + Math.random().toString(36).slice(2,7); }
+
+  async function loadPlayers(){
+    players = (await storeGet('players')) || [];
+    renderPlayers();
+  }
+  async function savePlayers(){
+    await storeSet('players', players);
+  }
+
+  function initials(name){
+    return name.trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+  }
+
+  function renderPlayers(){
+    const list = $('playersList');
+    if(players.length === 0){
+      list.innerHTML = '<div class="empty-state"><div class="big">Sin jugadores todavía</div><p>Toca el botón + para añadir el primero.</p></div>';
+      return;
+    }
+    list.innerHTML = players.map(p=>`
+      <div class="player-card" data-id="${p.id}">
+        ${p.photo
+          ? `<img class="player-photo" src="${p.photo}">`
+          : `<div class="player-photo placeholder">${initials(p.name)}</div>`}
+        <div class="player-info">
+          <p class="player-name">${p.number ? `<span class="player-num">${escapeHtml(p.number)}</span>` : ''}${escapeHtml(p.name)}</p>
+          <p class="player-phone">${p.phone ? `<a href="tel:${escapeHtml(p.phone)}">${escapeHtml(p.phone)}</a>` : 'Sin teléfono'}${p.position ? ` · <span class="player-position">${escapeHtml(p.position)}</span>` : ''}</p>
+        </div>
+        <div class="player-actions">
+          <button class="icon-btn edit-btn" aria-label="Editar">✎</button>
+        </div>
+      </div>
+    `).join('');
+    list.querySelectorAll('.edit-btn').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        const id = e.target.closest('.player-card').dataset.id;
+        openPlayerModal(players.find(p=>p.id===id));
+      });
+    });
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str || '';
+    return d.innerHTML;
+  }
+
+  function openPlayerModal(player){
+    editingPlayerId = player ? player.id : null;
+    pendingPhotoData = player ? player.photo : null;
+    $('playerModalTitle').textContent = player ? 'Editar jugador' : 'Añadir jugador';
+    $('playerNameInput').value = player ? player.name : '';
+    $('playerPhoneInput').value = player ? player.phone : '';
+    $('playerNumInput').value = player ? (player.number||'') : '';
+    $('playerPositionInput').value = player ? (player.position||'') : '';
+    $('photoPreview').src = pendingPhotoData || '';
+    $('photoPreview').style.display = pendingPhotoData ? 'block' : 'flex';
+    $('playerDeleteBtn').style.display = player ? 'block' : 'none';
+    $('playerOverlay').classList.add('open');
+  }
+  function closePlayerModal(){
+    $('playerOverlay').classList.remove('open');
+    editingPlayerId = null;
+    pendingPhotoData = null;
+  }
+
+  $('fabAdd').addEventListener('click', ()=>{
+    const activeView = document.querySelector('.tab.active').dataset.view;
+    if(activeView === 'partidos') openMatchModal(null);
+    else openPlayerModal(null);
+  });
+  $('playerCancelBtn').addEventListener('click', closePlayerModal);
+  $('playerOverlay').addEventListener('click', (e)=>{ if(e.target.id==='playerOverlay') closePlayerModal(); });
+
+  $('photoPickBtn').addEventListener('click', ()=> $('photoInput').click());
+  $('photoInput').addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    $('photoPickBtn').textContent = 'Procesando...';
+    try{
+      pendingPhotoData = await compressImage(file, 300, 0.7);
+      $('photoPreview').src = pendingPhotoData;
+    }catch(err){
+      toast('No se pudo procesar la foto.');
+    }
+    $('photoPickBtn').textContent = 'Elegir foto';
+  });
+
+  $('playerSaveBtn').addEventListener('click', async ()=>{
+    const name = $('playerNameInput').value.trim();
+    if(!name){ toast('Escribe un nombre.'); return; }
+    const phone = $('playerPhoneInput').value.trim();
+    const number = $('playerNumInput').value.trim();
+    const position = $('playerPositionInput').value;
+    if(editingPlayerId){
+      const p = players.find(x=>x.id===editingPlayerId);
+      p.name = name; p.phone = phone; p.number = number; p.photo = pendingPhotoData; p.position = position;
+    }else{
+      players.push({id: uid(), name, phone, number, photo: pendingPhotoData, position});
+    }
+    renderPlayers();
+    closePlayerModal();
+    await savePlayers();
+    toast('Jugador guardado');
+  });
+
+  $('playerDeleteBtn').addEventListener('click', async ()=>{
+    if(!editingPlayerId) return;
+    players = players.filter(p=>p.id!==editingPlayerId);
+    delete stats[editingPlayerId];
+    renderPlayers();
+    closePlayerModal();
+    await savePlayers();
+    await saveStats();
+    toast('Jugador eliminado');
+  });
+
+  /* ---------- Stats ---------- */
+  let stats = {};
+  const STATUS_OPTS = [
+    {key:'titular', label:'Titular'},
+    {key:'suplente', label:'Suplente'},
+    {key:'no_convocado', label:'No convocado'},
+    {key:'lesionado', label:'Lesionado'},
+    {key:'sancionado', label:'Sancionado'}
+  ];
+
+  async function loadStats(){
+    stats = (await storeGet('stats')) || {};
+  }
+  async function saveStats(){
+    await storeSet('stats', stats);
+  }
+  function getStat(id){
+    if(!stats[id]) stats[id] = {goals:0, yellow:0, red:0};
+    const s = stats[id];
+    STATUS_OPTS.forEach(opt=>{ if(s[opt.key] === undefined) s[opt.key] = 0; });
+    delete s.status;
+    return s;
+  }
+
+  function renderStats(){
+    const list = $('statsList');
+    if(players.length === 0){
+      list.innerHTML = '<div class="empty-state"><div class="big">Sin jugadores todavía</div><p>Añade jugadores en Plantilla para ver sus estadísticas.</p></div>';
+      return;
+    }
+    list.innerHTML = players.map(p=>{
+      const s = getStat(p.id);
+      return `
+      <div class="stat-card" data-id="${p.id}">
+        <div class="stat-card-head">
+          ${p.photo
+            ? `<img class="player-photo" src="${p.photo}" style="width:44px;height:44px;">`
+            : `<div class="player-photo placeholder" style="width:44px;height:44px;font-size:16px;">${initials(p.name)}</div>`}
+          <div class="player-info">
+            <p class="player-name" style="font-size:15px;">${p.number ? `<span class="player-num">${escapeHtml(p.number)}</span>` : ''}${escapeHtml(p.name)}</p>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box goals">
+            <div class="stat-box-label"><span class="ball-icon"></span>Goles</div>
+            <div class="stat-controls">
+              <button class="stat-btn" data-type="goals" data-delta="-1">–</button>
+              <span class="stat-value">${s.goals}</span>
+              <button class="stat-btn" data-type="goals" data-delta="1">+</button>
+            </div>
+          </div>
+          <div class="stat-box yellow">
+            <div class="stat-box-label"><span class="card-icon yellow"></span>Amarillas</div>
+            <div class="stat-controls">
+              <button class="stat-btn" data-type="yellow" data-delta="-1">–</button>
+              <span class="stat-value">${s.yellow}</span>
+              <button class="stat-btn" data-type="yellow" data-delta="1">+</button>
+            </div>
+          </div>
+          <div class="stat-box red">
+            <div class="stat-box-label"><span class="card-icon red"></span>Rojas</div>
+            <div class="stat-controls">
+              <button class="stat-btn" data-type="red" data-delta="-1">–</button>
+              <span class="stat-value">${s.red}</span>
+              <button class="stat-btn" data-type="red" data-delta="1">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="stat-row status-counters">
+          ${STATUS_OPTS.map(opt => `
+          <div class="stat-box ${opt.key}">
+            <div class="stat-box-label">${opt.label}</div>
+            <div class="stat-controls">
+              <button class="stat-btn" data-type="${opt.key}" data-delta="-1">–</button>
+              <span class="stat-value">${s[opt.key]}</span>
+              <button class="stat-btn" data-type="${opt.key}" data-delta="1">+</button>
+            </div>
+          </div>
+          `).join('')}
+        </div>
+      </div>`;
+    }).join('');
+
+    list.querySelectorAll('.stat-btn').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const id = btn.closest('.stat-card').dataset.id;
+        const type = btn.dataset.type;
+        const delta = parseInt(btn.dataset.delta);
+        const s = getStat(id);
+        s[type] = Math.max(0, s[type] + delta);
+        renderStats();
+        await saveStats();
+      });
+    });
+  }
+
+  /* ---------- Partidos ---------- */
+  let matches = [];
+  let editingMatchId = null;
+  let currentConvocatoria = [];
+
+  async function loadMatches(){
+    matches = (await storeGet('matches')) || [];
+  }
+  async function saveMatches(){
+    await storeSet('matches', matches);
+  }
+
+  function formatMatchDate(dateStr){
+    if(!dateStr) return 'Sin fecha';
+    const [y,m,d] = dateStr.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function matchResultType(m){
+    if(m.scoreFor === null || m.scoreFor === '' || m.scoreAgainst === null || m.scoreAgainst === '') return 'pending';
+    const f = parseInt(m.scoreFor), a = parseInt(m.scoreAgainst);
+    if(f > a) return 'win';
+    if(f < a) return 'loss';
+    return 'draw';
+  }
+
+  function renderMatchSummary(){
+    let pj=0, pg=0, pe=0, pp=0, gf=0, gc=0;
+    matches.forEach(m=>{
+      const type = matchResultType(m);
+      if(type === 'pending') return;
+      pj++;
+      gf += parseInt(m.scoreFor);
+      gc += parseInt(m.scoreAgainst);
+      if(type==='win') pg++;
+      else if(type==='draw') pe++;
+      else pp++;
+    });
+    const boxes = [
+      {v:pj, l:'Jugados', cls:''},
+      {v:pg, l:'Ganados', cls:'pg'},
+      {v:pe, l:'Empates', cls:'pe'},
+      {v:pp, l:'Perdidos', cls:'pp'},
+      {v:gf, l:'Goles a favor', cls:''},
+      {v:gc, l:'Goles en contra', cls:''}
+    ];
+    $('matchSummary').innerHTML = boxes.map(b=>`
+      <div class="summary-box ${b.cls}">
+        <div class="sv">${b.v}</div>
+        <div class="sl">${b.l}</div>
+      </div>
+    `).join('');
+  }
+
+  const badgeLabel = {win:'Ganado', draw:'Empate', loss:'Perdido', pending:'Pendiente'};
+
+  function renderMatches(){
+    renderMatchSummary();
+    const list = $('matchesList');
+    if(matches.length === 0){
+      list.innerHTML = '<div class="empty-state"><div class="big">Sin partidos todavía</div><p>Toca el botón + para añadir el calendario de la temporada.</p></div>';
+      return;
+    }
+    const sorted = [...matches].sort((a,b)=> (a.date||'9999').localeCompare(b.date||'9999'));
+    list.innerHTML = sorted.map(m=>{
+      const type = matchResultType(m);
+      const hasScore = type !== 'pending';
+      return `
+      <div class="match-card" data-id="${m.id}">
+        <div class="match-top">
+          <div>
+            <div class="match-rival">${escapeHtml(m.rival || 'Rival por definir')}</div>
+            <div class="match-date">${formatMatchDate(m.date)}</div>
+          </div>
+          ${hasScore ? `<div class="match-score">${m.scoreFor} – ${m.scoreAgainst}</div>` : ''}
+        </div>
+        <span class="match-badge ${type}">${badgeLabel[type]}</span>
+        ${m.analysis ? '<span class="match-analysis-flag">📝 Análisis</span>' : ''}
+      </div>`;
+    }).join('');
+    list.querySelectorAll('.match-card').forEach(card=>{
+      card.addEventListener('click', ()=>{
+        openMatchModal(matches.find(m=>m.id===card.dataset.id));
+      });
+    });
+  }
+
+  function openMatchModal(match){
+    editingMatchId = match ? match.id : null;
+    $('matchModalTitle').textContent = match ? 'Editar partido' : 'Añadir partido';
+    $('matchRivalInput').value = match ? (match.rival||'') : '';
+    $('matchDateInput').value = match ? (match.date||'') : '';
+    $('matchForInput').value = match && match.scoreFor !== null && match.scoreFor !== '' ? match.scoreFor : '';
+    $('matchAgainstInput').value = match && match.scoreAgainst !== null && match.scoreAgainst !== '' ? match.scoreAgainst : '';
+    $('matchAnalysisInput').value = match ? (match.analysis||'') : '';
+    currentConvocatoria = match && Array.isArray(match.convocatoria) ? [...match.convocatoria] : [];
+    renderConvocatoriaSummary();
+    $('matchDeleteBtn').style.display = match ? 'block' : 'none';
+    $('matchOverlay').classList.add('open');
+  }
+  function closeMatchModal(){
+    $('matchOverlay').classList.remove('open');
+    editingMatchId = null;
+  }
+
+  function sortPlayersByNumber(list){
+    return [...list].sort((a,b)=>{
+      const na = a.number ? parseInt(a.number) : 999;
+      const nb = b.number ? parseInt(b.number) : 999;
+      if(na!==nb) return na-nb;
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  function renderConvocatoriaSummary(){
+    const n = currentConvocatoria.length;
+    $('convocatoriaSummary').textContent = n===0
+      ? 'Ningún jugador convocado todavía'
+      : `${n} jugador${n===1?'':'es'} convocado${n===1?'':'s'}`;
+  }
+
+  function renderSquadList(){
+    const list = $('squadList');
+    if(players.length===0){
+      list.innerHTML = '<div class="empty-state"><div class="big">Sin jugadores</div><p>Añade jugadores en la Plantilla primero.</p></div>';
+      return;
+    }
+    const sorted = sortPlayersByNumber(players);
+    list.innerHTML = sorted.map(p=>{
+      const checked = currentConvocatoria.includes(p.id);
+      return `
+      <div class="squad-row ${checked?'checked':''}" data-id="${p.id}">
+        ${p.photo
+          ? `<img class="player-photo" src="${p.photo}" style="width:38px;height:38px;">`
+          : `<div class="player-photo placeholder" style="width:38px;height:38px;font-size:14px;">${initials(p.name)}</div>`}
+        <div class="squad-row-name">${p.number ? `<span class="player-num">${escapeHtml(p.number)}</span>` : ''}${escapeHtml(p.name)}</div>
+        <div class="squad-check">✓</div>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('.squad-row').forEach(row=>{
+      row.addEventListener('click', ()=>{
+        const id = row.dataset.id;
+        const idx = currentConvocatoria.indexOf(id);
+        if(idx>=0) currentConvocatoria.splice(idx,1);
+        else currentConvocatoria.push(id);
+        renderSquadList();
+        renderConvocatoriaSummary();
+      });
+    });
+  }
+
+  $('convocatoriaBtn').addEventListener('click', ()=>{
+    renderSquadList();
+    $('squadOverlay').classList.add('open');
+  });
+  $('squadDoneBtn').addEventListener('click', ()=> $('squadOverlay').classList.remove('open'));
+  $('squadOverlay').addEventListener('click', (e)=>{ if(e.target.id==='squadOverlay') $('squadOverlay').classList.remove('open'); });
+
+  $('downloadConvocatoriaBtn').addEventListener('click', async ()=>{
+    if(currentConvocatoria.length===0){ toast('Añade jugadores a la convocatoria primero.'); return; }
+    if(typeof window.jspdf === 'undefined'){ toast('No se pudo cargar el generador de PDF. Revisa tu conexión.'); return; }
+
+    const teamName = teamNameInput.value || 'Mi Equipo';
+    const teamCat = teamCatInput.value || '';
+    const rival = $('matchRivalInput').value.trim() || 'Rival por definir';
+    const dateVal = $('matchDateInput').value;
+    const dateStr = dateVal ? formatMatchDate(dateVal) : '';
+    const selected = sortPlayersByNumber(players.filter(p=>currentConvocatoria.includes(p.id)));
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit:'pt', format:'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const marginX = 48;
+    let y = 60;
+
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(22);
+    doc.text(teamName.toUpperCase(), pageWidth/2, y, {align:'center'});
+    if(teamCat){
+      y += 20;
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(12);
+      doc.setTextColor(90,90,90);
+      doc.text(teamCat.toUpperCase(), pageWidth/2, y, {align:'center'});
+      doc.setTextColor(0,0,0);
+    }
+    y += 16;
+    doc.setDrawColor(20,20,20);
+    doc.setLineWidth(1.2);
+    doc.line(marginX, y, pageWidth-marginX, y);
+
+    y += 32;
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(14);
+    doc.text(`Convocatoria vs ${rival}`, marginX, y);
+    if(dateStr){
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(11);
+      doc.setTextColor(90,90,90);
+      doc.text(dateStr, pageWidth-marginX, y, {align:'right'});
+      doc.setTextColor(0,0,0);
+    }
+
+    y += 26;
+    doc.setFillColor(240,240,240);
+    doc.rect(marginX, y-14, pageWidth-marginX*2, 22, 'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(10);
+    doc.text('DORSAL', marginX+10, y+1);
+    doc.text('JUGADOR', marginX+90, y+1);
+    y += 22;
+
     doc.setFont('helvetica','normal');
-    b.items.forEach(it => line(`- [${it.status==='listo'?'Listo':'En progreso'}] ${it.text}`));
-    y += 3;
+    doc.setFontSize(12);
+    selected.forEach((p,i)=>{
+      if(y > 780){ doc.addPage(); y = 60; }
+      if(i % 2 === 1){
+        doc.setFillColor(248,248,248);
+        doc.rect(marginX, y-14, pageWidth-marginX*2, 22, 'F');
+      }
+      doc.text(p.number ? String(p.number) : '—', marginX+10, y+1);
+      doc.text(p.name, marginX+90, y+1);
+      y += 22;
+    });
+
+    y += 20;
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(11);
+    doc.text(`Total convocados: ${selected.length}`, marginX, y);
+
+    const safeRival = rival.replace(/[^a-z0-9]+/gi,'-').toLowerCase();
+    const filename = `convocatoria-${safeRival}${dateVal?'-'+dateVal:''}.pdf`;
+    const pdfBlob = doc.output('blob');
+
+    const file = new File([pdfBlob], filename, { type:'application/pdf' });
+    if(navigator.canShare && navigator.canShare({ files:[file] })){
+      try{
+        await navigator.share({
+          files:[file],
+          title: `Convocatoria vs ${rival}`,
+          text: `Convocatoria de ${teamName} vs ${rival}${dateStr?' ('+dateStr+')':''}`
+        });
+        return;
+      }catch(err){
+        if(err && err.name === 'AbortError') return;
+      }
+    }
+    doc.save(filename);
+    toast('PDF descargado. Compártelo desde tus archivos.');
   });
-  checkPage(8);
-  doc.setFont('helvetica','bold'); doc.text('Incidencias', 14, y); y+=5.5;
-  doc.setFont('helvetica','normal');
-  if(appcc.anual.incidencias.length===0){ smallNote('Sin incidencias registradas.'); }
-  appcc.anual.incidencias.forEach(inc => line(`${inc.fecha}: ${inc.texto}`));
-  y += 4;
 
-  // Manipuladores
-  deptHeader('6. Manipuladores de alimentos');
-  appcc.manip.forEach(p => line(`${p.nombre}: ${p.pdfData ? 'Carnet subido ('+ (p.pdfName||'PDF') +')' : 'Sin carnet subido'}`));
-  y += 4;
+  $('matchCancelBtn').addEventListener('click', closeMatchModal);
+  $('matchOverlay').addEventListener('click', (e)=>{ if(e.target.id==='matchOverlay') closeMatchModal(); });
 
-  // Proveedores
-  deptHeader('7. Proveedores');
-  appcc.prov.forEach(p => {
-    const vehTxt = p.vehiculo==='muybueno'?'Muy bueno':p.vehiculo==='bueno'?'Bueno':'Malo';
-    checkPage(12);
-    doc.setFont('helvetica','bold'); doc.text(p.nombre, 14, y); y+=5;
-    doc.setFont('helvetica','normal'); doc.setFontSize(9);
-    line(`${p.direccion||'-'} | Contacto: ${p.contacto||'-'} | Tel: ${p.telefono||'-'} | Vehículo: ${vehTxt}`);
-    if(p.productos.length) line(`Productos: ${p.productos.join(', ')}`);
-    doc.setFontSize(9.5);
-    y += 2;
+  $('matchSaveBtn').addEventListener('click', async ()=>{
+    const rival = $('matchRivalInput').value.trim();
+    if(!rival){ toast('Escribe el nombre del rival.'); return; }
+    const date = $('matchDateInput').value;
+    const forVal = $('matchForInput').value.trim();
+    const againstVal = $('matchAgainstInput').value.trim();
+    const scoreFor = forVal === '' ? '' : Math.max(0, parseInt(forVal)||0);
+    const scoreAgainst = againstVal === '' ? '' : Math.max(0, parseInt(againstVal)||0);
+    const analysis = $('matchAnalysisInput').value.trim();
+    if(editingMatchId){
+      const m = matches.find(x=>x.id===editingMatchId);
+      m.rival = rival; m.date = date; m.scoreFor = scoreFor; m.scoreAgainst = scoreAgainst; m.analysis = analysis; m.convocatoria = [...currentConvocatoria];
+    }else{
+      matches.push({id: uid(), rival, date, scoreFor, scoreAgainst, analysis, convocatoria: [...currentConvocatoria]});
+    }
+    renderMatches();
+    closeMatchModal();
+    await saveMatches();
+    toast('Partido guardado');
   });
 
-  doc.save(`APPCC_Restaurante_Begona_${MESES[calMonth]}_${calYear}.pdf`);
-}
-function renderExportBar(){
-  const bar = document.getElementById('appccExportBar');
-  if(currentApp!=='appcc'){ bar.innerHTML=''; return; }
-  bar.innerHTML = `<button class="btn btn-add" onclick="exportAppccPDF()">📄 Exportar informe completo (PDF)</button>`;
-}
+  $('matchDeleteBtn').addEventListener('click', async ()=>{
+    if(!editingMatchId) return;
+    matches = matches.filter(m=>m.id!==editingMatchId);
+    renderMatches();
+    closeMatchModal();
+    await saveMatches();
+    toast('Partido eliminado');
+  });
 
-/* ================= Render dispatcher ================= */
-function renderTabs(){
-  const nav = document.getElementById('tabs');
-  if(currentApp!=='appcc'){ nav.innerHTML=''; return; }
-  nav.innerHTML = APPCC_TABS.map(t => `
-    <button data-tab="${t.id}" class="${activeAppccTab===t.id?'active':''}" style="${activeAppccTab===t.id?`background:var(--${t.color});`:''}">
-      <span>${t.icon}</span><span>${t.label}</span>
-    </button>
-  `).join('');
-  nav.querySelectorAll('button').forEach(b=>{ b.onclick = () => { activeAppccTab = b.dataset.tab; renderAll(); }; });
-}
-function renderAll(){
-  renderTabs();
-  renderExportBar();
-  const main = document.getElementById('main');
-  if(currentApp==='appcc'){
-    const renderers = { temps:renderTemps, diario:renderDiario, camaras:renderCamaras, limpieza:renderLimpieza, anual:renderAnual, manip:renderManip, prov:renderProv };
-    main.innerHTML = renderers[activeAppccTab]();
-  } else {
-    main.innerHTML = renderHorario();
-  }
-}
+  /* ---------- Calendar / trainings ---------- */
+  const DOW = ['L','M','X','J','V','S','D'];
+  const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  let calYear, calMonth;
+  let monthData = {};
+  let selectedDay = null;
 
-/* ---- Modo empleado por enlace: entra directo en Horario, sin pestañas de APPCC ---- */
-(function initLockMode(){
-  const params = new URLSearchParams(window.location.search);
-  if(params.get('modo')==='empleado' && params.get('emp')){
-    currentApp = 'horario';
-    document.getElementById('appSwitch').style.display = 'none';
-    document.getElementById('mainTitle').textContent = 'Control Horario';
-    document.getElementById('mainSub').textContent = 'Tu registro de turnos';
+  function monthKey(y,m){ return `trainings:${y}-${String(m+1).padStart(2,'0')}`; }
+
+  // Normaliza una entrada de día: formatos antiguos eran solo un array de fotos.
+  function dayEntry(day){
+    const raw = monthData[day];
+    if(!raw) return {notes:'', photos:[]};
+    if(Array.isArray(raw)) return {notes:'', photos: raw};
+    return {notes: raw.notes || '', photos: raw.photos || []};
   }
+  function setDayEntry(day, entry){
+    if(!entry.notes && entry.photos.length===0){
+      delete monthData[day];
+    }else{
+      monthData[day] = entry;
+    }
+  }
+
+  async function loadMonth(y,m){
+    monthData = (await storeGet(monthKey(y,m))) || {};
+    renderCalendar();
+  }
+  async function saveMonth(){
+    await storeSet(monthKey(calYear, calMonth), monthData);
+  }
+
+  function renderCalendar(){
+    $('calMonthLabel').textContent = `${MONTHS[calMonth]} ${calYear}`;
+    const grid = $('calGrid');
+    grid.innerHTML = DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+    const first = new Date(calYear, calMonth, 1);
+    let startOffset = first.getDay() - 1;
+    if(startOffset < 0) startOffset = 6;
+    const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+    const today = new Date();
+    const isCurrentMonth = today.getFullYear()===calYear && today.getMonth()===calMonth;
+
+    for(let i=0;i<startOffset;i++){
+      grid.innerHTML += '<div class="cal-day empty"></div>';
+    }
+    for(let d=1; d<=daysInMonth; d++){
+      const entry = dayEntry(d);
+      const photos = entry.photos;
+      const hasPhotos = photos.length > 0;
+      const hasNotes = entry.notes.trim().length > 0;
+      const isToday = isCurrentMonth && today.getDate()===d;
+      const div = document.createElement('div');
+      div.className = 'cal-day' + (hasPhotos?' has-photos':'') + (isToday?' today':'');
+      div.dataset.day = d;
+      if(hasPhotos){
+        div.innerHTML = `<img class="thumb" src="${photos[0]}"><span class="num">${d}</span><span class="count-badge">${photos.length}</span>${hasNotes?'<span class="note-dot"></span>':''}`;
+      }else{
+        div.innerHTML = `<span class="num">${d}</span>${hasNotes?'<span class="note-dot"></span>':''}`;
+      }
+      div.addEventListener('click', ()=> openDayModal(d));
+      grid.appendChild(div);
+    }
+  }
+
+  $('calPrev').addEventListener('click', ()=>{
+    calMonth--; if(calMonth<0){calMonth=11; calYear--;}
+    loadMonth(calYear, calMonth);
+  });
+  $('calNext').addEventListener('click', ()=>{
+    calMonth++; if(calMonth>11){calMonth=0; calYear++;}
+    loadMonth(calYear, calMonth);
+  });
+
+  let notesSaveTimer = null;
+
+  function openDayModal(day){
+    selectedDay = day;
+    $('dayModalTitle').textContent = `Día ${day}`;
+    $('dayModalSub').textContent = `${MONTHS[calMonth]} ${calYear}`;
+    $('dayNotesInput').value = dayEntry(day).notes;
+    renderDayPhotos();
+    $('dayOverlay').classList.add('open');
+  }
+  async function closeDayModal(){
+    clearTimeout(notesSaveTimer);
+    await saveMonth();
+    $('dayOverlay').classList.remove('open');
+    selectedDay = null;
+    renderCalendar();
+  }
+  function renderDayPhotos(){
+    const photos = dayEntry(selectedDay).photos;
+    const grid = $('dayPhotoGrid');
+    if(photos.length===0){
+      grid.innerHTML = '';
+      return;
+    }
+    grid.innerHTML = photos.map((src,i)=>`
+      <div class="photo-item">
+        <img src="${src}">
+        <button class="photo-del" data-i="${i}">✕</button>
+      </div>
+    `).join('');
+    grid.querySelectorAll('.photo-del').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const i = parseInt(btn.dataset.i);
+        const entry = dayEntry(selectedDay);
+        entry.photos.splice(i,1);
+        setDayEntry(selectedDay, entry);
+        renderDayPhotos();
+        await saveMonth();
+      });
+    });
+  }
+
+  $('dayCloseBtn').addEventListener('click', closeDayModal);
+  $('dayOverlay').addEventListener('click', (e)=>{ if(e.target.id==='dayOverlay') closeDayModal(); });
+
+  $('dayNotesInput').addEventListener('input', (e)=>{
+    if(selectedDay===null) return;
+    const entry = dayEntry(selectedDay);
+    entry.notes = e.target.value;
+    setDayEntry(selectedDay, entry);
+    clearTimeout(notesSaveTimer);
+    notesSaveTimer = setTimeout(()=> saveMonth(), 500);
+  });
+
+  $('dayPhotoPickBtn').addEventListener('click', ()=> $('dayPhotoInput').click());
+  $('dayPhotoInput').addEventListener('change', async (e)=>{
+    const files = Array.from(e.target.files);
+    if(files.length===0) return;
+    $('dayPhotoPickBtn').textContent = 'Procesando fotos...';
+    const entry = dayEntry(selectedDay);
+    for(const file of files){
+      try{
+        const dataUrl = await compressImage(file, 700, 0.65);
+        entry.photos.push(dataUrl);
+      }catch(err){}
+    }
+    setDayEntry(selectedDay, entry);
+    renderDayPhotos();
+    await saveMonth();
+    $('dayPhotoPickBtn').textContent = 'Añadir fotos del entreno';
+    e.target.value = '';
+  });
+
+  /* ---------- Init ---------- */
+  async function init(){
+    const now = new Date();
+    calYear = now.getFullYear();
+    calMonth = now.getMonth();
+    await Promise.all([loadTeamInfo(), loadPlayers(), loadMonth(calYear, calMonth), loadStats(), loadMatches()]);
+  }
+  init();
 })();
-
-renderAll();
-renderCloudBadge();
-initCloudSync();
 </script>
 </body>
 </html>
