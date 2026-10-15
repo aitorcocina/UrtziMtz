@@ -512,8 +512,10 @@
   .ws-day.hoy{background:var(--amber); border-color:var(--amber); color:#fff;}
   .ws-day.hoy .dw{color:rgba(255,255,255,.85);} .ws-day.hoy .dots i.g{background:#fff;} .ws-day.hoy .dots i.r{background:#ffd5db;}
   #matchConvBtn{display:none !important;}
+  .um-av{padding:0 !important; overflow:hidden; background:transparent !important; border:none;}
+  .um-av svg{width:100%; height:100%; display:block;}
 </style>
-<link rel="stylesheet" href="tema-claro.css"><script src="dictado-voz.js" defer></script><script src="competicion-data.js?v=20261015b"></script><script src="competicion.js?v=20261015b" defer></script><script src="convocatoria.js?v=20261015b" defer></script><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#B3122B"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Entrenamiento"></head>
+<link rel="stylesheet" href="tema-claro.css"><script src="avatar.js?v=20261015"></script><script src="dictado-voz.js" defer></script><script src="competicion-data.js?v=20261015b"></script><script src="competicion.js?v=20261015b" defer></script><script src="convocatoria.js?v=20261015b" defer></script><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#B3122B"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Entrenamiento"></head>
 <body>
 <div class="field-lines"></div>
 <div class="app">
@@ -963,7 +965,7 @@
       <div class="player-card" data-id="${p.id}">
         ${p.photo
           ? `<img class="player-photo" src="${p.photo}">`
-          : `<div class="player-photo placeholder">${initials(p.name)}</div>`}
+          : `<div class="player-photo placeholder um-av">${avatarSVG(p.id||p.name)}</div>`}
         <div class="player-info">
           <p class="player-name">${p.number ? `<span class="player-num">${escapeHtml(p.number)}</span>` : ''}${escapeHtml(p.name)}</p>
           <p class="player-phone">${p.phone ? `<a href="tel:${escapeHtml(p.phone)}">${escapeHtml(p.phone)}</a>` : 'Sin teléfono'}</p>
@@ -1112,7 +1114,7 @@
         <div class="stat-card-head">
           ${p.photo
             ? `<img class="player-photo" src="${p.photo}" style="width:44px;height:44px;">`
-            : `<div class="player-photo placeholder" style="width:44px;height:44px;font-size:16px;">${initials(p.name)}</div>`}
+            : `<div class="player-photo placeholder um-av" style="width:44px;height:44px;">${avatarSVG(p.id||p.name)}</div>`}
           <div class="player-info">
             <p class="player-name" style="font-size:15px;">${p.number ? `<span class="player-num">${escapeHtml(p.number)}</span>` : ''}${escapeHtml(p.name)}</p>
           </div>
@@ -1422,7 +1424,7 @@
         <div class="conv-check">${checked ? '✓' : ''}</div>
         ${p.photo
           ? `<img class="conv-player-photo" src="${p.photo}">`
-          : `<div class="conv-player-photo placeholder">${initials(p.name)}</div>`}
+          : `<div class="conv-player-photo placeholder um-av">${avatarSVG(p.id||p.name)}</div>`}
         <div class="conv-player-name">${p.number ? `<span class="conv-player-num">${escapeHtml(p.number)}</span>` : ''}${escapeHtml(p.name)}</div>
       </div>`;
     }).join('');
