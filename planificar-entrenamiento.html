@@ -21,7 +21,7 @@
   --amber:#ffb703;
   --amber-dim:#8a6300;
   --team-a:#e63946;
-  --team-b:#4895ef;
+  --team-b:#32d27a;
   --danger:#e63946;
   --radius:10px;
 }
@@ -612,7 +612,7 @@ svg#pitch{
         <div class="swatch active" style="background:#ffffff" data-color="#ffffff"></div>
         <div class="swatch" style="background:#ffb703" data-color="#ffb703"></div>
         <div class="swatch" style="background:#e63946" data-color="#e63946"></div>
-        <div class="swatch" style="background:#4895ef" data-color="#4895ef"></div>
+        <div class="swatch" style="background:#c6f432" data-color="#c6f432"></div>
         <div class="swatch" style="background:#2dd881" data-color="#2dd881"></div>
       </div>
     </div>
@@ -878,7 +878,7 @@ svg#pitch{
 
   function renderPlayerToken(p){
     const g = el('g',{class:'token', 'data-id':p.id, transform:`translate(${p.x},${p.y})`}, playersLayer);
-    el('circle',{class:'token-disc', r:14, fill: p.team==='A' ? '#e63946' : '#4895ef', stroke: selectedToken===p.id?'#ffb703':'#0d1f17', 'stroke-width': selectedToken===p.id?3:2}, g);
+    el('circle',{class:'token-disc', r:14, fill: p.team==='A' ? '#e63946' : '#32d27a', stroke: selectedToken===p.id?'#ffb703':'#0d1f17', 'stroke-width': selectedToken===p.id?3:2}, g);
     el('text',{class:'token-label', y:1}, g).textContent = p.num;
     if(p.name){
       el('text',{class:'token-name', y:26}, g).textContent = p.name;
