@@ -1156,8 +1156,8 @@
             </div>
           `).join('')}
             <div class="status-pill status-counter status-jugados">
-              <div>Total partidos</div>
-              <div class="stat-controls"><span class="stat-value">${STATUS_OPTS.reduce((t,o)=>t+s.counts[o.key],0)}</span></div>
+              <div>Convocado</div>
+              <div class="stat-controls"><span class="stat-value">${s.counts.titular + s.counts.suplente}</span></div>
             </div>
         </div>
       </div>`;
