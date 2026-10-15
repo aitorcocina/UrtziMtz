@@ -1101,6 +1101,8 @@
     if(stats[id].status === undefined) stats[id].status = 'no_convocado';
     if(!stats[id].counts) stats[id].counts = {};
     STATUS_OPTS.forEach(o=>{ if(typeof stats[id].counts[o.key] !== 'number') stats[id].counts[o.key] = 0; });
+    // Convocado se cuenta a mano (puede ir convocado y no jugar). Arranca con titular + suplente.
+    if(typeof stats[id].counts.convocado !== 'number') stats[id].counts.convocado = (stats[id].counts.titular||0) + (stats[id].counts.suplente||0);
     return stats[id];
   }
   function playedCount(s){
@@ -1159,7 +1161,11 @@
           `).join('')}
             <div class="status-pill status-counter status-jugados">
               <div>Convocado</div>
-              <div class="stat-controls"><span class="stat-value">${s.counts.titular + s.counts.suplente}</span></div>
+              <div class="stat-controls">
+                <button class="stat-btn" data-count="convocado" data-delta="-1">–</button>
+                <span class="stat-value">${s.counts.convocado}</span>
+                <button class="stat-btn" data-count="convocado" data-delta="1">+</button>
+              </div>
             </div>
         </div>
       </div>`;
