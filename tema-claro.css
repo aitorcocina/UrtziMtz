@@ -1,0 +1,88 @@
+/* tema-claro.css — Tema claro estilo Gorliz (fondo gris claro, tarjetas blancas, acento rojo)
+   Uso: <link rel="stylesheet" href="tema-claro.css"> DESPUÉS del <style> de la página. */
+
+:root{
+  --rojo:#B3122B;
+  --rojo-osc:#8A0D20;
+  --negro:#ffffff;      /* fondo general */
+  --negro2:#e9f6ee;     /* tarjetas */
+  --gris:#6b6e76;
+  --gris-claro:#2b2d33;
+  --blanco:#14151a;     /* texto principal */
+  --verde:#1B7A3E;
+  --azul:#2E6FEA;
+  --oro:#d99200;
+  --morado:#8a4fd6;
+  --borde:rgba(0,0,0,0.07);
+  color-scheme: light;
+}
+
+html, body{
+  background:#ffffff !important;
+  color:#14151a;
+}
+
+/* Cabecera/home: quitar degradados y rayas oscuras */
+.home{
+  background:linear-gradient(180deg, rgba(27,122,62,0.05), transparent 40%) !important;
+}
+
+/* Tarjetas y botones de menú */
+.menu-btn{
+  background:#e9f6ee !important;
+  border:1px solid rgba(27,122,62,0.14) !important;
+  border-radius:24px;
+  box-shadow:0 4px 18px rgba(179,18,43,0.08);
+  color:#14151a;
+}
+
+/* Campos de formulario legibles sobre claro */
+input, select, textarea{
+  background:#fff;
+  color:#14151a;
+  border:1px solid rgba(0,0,0,0.12);
+  border-radius:14px;
+}
+input::placeholder, textarea::placeholder{ color:#8b8d93; }
+
+/* Pies de página */
+.home-footer{ color:#8b8d93 !important; }
+.credit-footer span{ color:rgba(0,0,0,0.4) !important; }
+
+/* Botones de acento: texto siempre blanco */
+.btn-rojo, .btn-primary, button.primary{ color:#fff; }
+
+/* Cifras tabulares como en la web del Gorliz */
+body{ font-variant-numeric:tabular-nums; }
+
+/* ===== Variables propias de plantilla-juvenil / plantilla-cadete ===== */
+:root{
+  --pitch-dark:#ffffff;
+  --pitch:#e9f6ee;
+  --pitch-light:#f3faf6;
+  --line:#14151a;
+  --line-dim:rgba(20,21,26,0.35);
+  --line-faint:rgba(27,122,62,0.16);
+  --ink:#14151a;
+  --amber:#B3122B;
+  --amber-dark:#8A0D20;
+  --red:#B3122B;
+  --shadow:0 4px 18px rgba(179,18,43,0.10);
+}
+.field-lines{ background:linear-gradient(180deg, rgba(27,122,62,0.04), transparent 35%) !important; }
+
+/* ===== Variables propias de planificar-entrenamiento ===== */
+:root{
+  --panel:#e9f6ee;
+  --panel-2:#f3faf6;
+  --panel-border:#cfe6d8;
+  --ink-dim:#6b6e76;
+  --amber-dim:#d9a2ab;
+}
+
+/* planificar: zona alrededor de la pizarra en claro */
+.stage, .board-wrap, .canvas-wrap{ background:#ffffff !important; }
+
+/* Botones secundarios legibles en claro */
+.btn-file, .btn-outline{ color:#14151a !important; }
+.btn-file{ background:#e9f6ee; border-color:rgba(27,122,62,.35); }
