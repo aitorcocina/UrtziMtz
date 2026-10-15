@@ -107,6 +107,7 @@
       var fab = document.getElementById('fabAdd'); if(fab) fab.style.display = 'none';
       window.scrollTo(0,0);
     });
+    btn.click(); // al abrir, lo primero que se ve es la Liga
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

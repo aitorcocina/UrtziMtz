@@ -227,7 +227,12 @@
   }
   .stat-card-head{display:flex; align-items:center; gap:12px;}
   #playerStatsBox .stat-card-head .player-photo, #playerStatsBox .stat-card-head .player-info{display:none;}
-  #playerStatsBox .stat-card{margin:0;} .player-card{cursor:pointer;}
+  #playerStatsBox .stat-card{margin:0;} .player-card{cursor:pointer; flex-wrap:wrap;}
+  .player-actions{flex-direction:row !important; align-items:center;}
+  .stats-btn{font-size:16px;} .stats-btn.on{background:var(--amber); color:#fff; border-color:var(--amber);}
+  .player-stats-panel{flex-basis:100%; margin-top:2px; cursor:default;}
+  .player-stats-panel .stat-card{margin:0;}
+  .player-stats-panel .stat-card-head .player-photo, .player-stats-panel .stat-card-head .player-info{display:none;}
   .stat-row{display:flex; gap:8px; margin-top:12px;}
   .stat-box{flex:1; border-radius:10px; padding:7px 4px 8px; text-align:center; background:rgba(255,255,255,0.05);}
   .stat-box.goals{background:rgba(31,168,92,0.14);}
@@ -947,6 +952,7 @@
     return name.trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
   }
 
+  const statsAbiertas = new Set();
   function renderPlayers(){
     const list = $('playersList');
     if(players.length === 0){
@@ -963,13 +969,24 @@
           <p class="player-phone">${p.phone ? `<a href="tel:${escapeHtml(p.phone)}">${escapeHtml(p.phone)}</a>` : 'Sin teléfono'}</p>
         </div>
         <div class="player-actions">
+          <button class="icon-btn stats-btn${statsAbiertas.has(p.id)?' on':''}" aria-label="Estadísticas" title="Estadísticas">📊</button>
           <button class="icon-btn edit-btn" aria-label="Editar">✎</button>
         </div>
+        <div class="player-stats-panel" ${statsAbiertas.has(p.id)?'':'hidden'}></div>
       </div>
     `).join('');
     list.querySelectorAll('.player-card').forEach(card=>{
+      const pid = card.dataset.id, panel = card.querySelector('.player-stats-panel'), sbtn = card.querySelector('.stats-btn');
+      const pintar = ()=>{ const pl = players.find(x=>x.id===pid); if(!pl) return; panel.innerHTML = statCardHTML(pl); bindStatButtons(panel, pintar); };
+      panel.addEventListener('click', (e)=> e.stopPropagation());
+      if(statsAbiertas.has(pid)) pintar();
+      sbtn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        if(statsAbiertas.has(pid)){ statsAbiertas.delete(pid); panel.hidden = true; sbtn.classList.remove('on'); }
+        else { statsAbiertas.add(pid); pintar(); panel.hidden = false; sbtn.classList.add('on'); }
+      });
       card.addEventListener('click', (e)=>{
-        if(e.target.closest('a')||e.target.closest('.edit-btn')) return;
+        if(e.target.closest('a')||e.target.closest('.edit-btn')||e.target.closest('.stats-btn')||e.target.closest('.player-stats-panel')) return;
         openPlayerModal(players.find(p=>p.id===card.dataset.id));
       });
     });
@@ -1003,8 +1020,7 @@
   function renderPlayerStatsBox(player){
     const box = $('playerStatsBox');
     if(!player){ box.innerHTML = ''; return; }
-    box.innerHTML = '<div class="field-label" style="margin-top:18px">Estadísticas</div>' + statCardHTML(player);
-    bindStatButtons(box, ()=>renderPlayerStatsBox(player));
+    box.innerHTML = '';
   }
   function closePlayerModal(){
     $('playerOverlay').classList.remove('open');
