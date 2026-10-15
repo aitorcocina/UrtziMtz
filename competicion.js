@@ -53,7 +53,8 @@
     var prox = D.proximos.partidos.filter(function(m){ return esYo(m[1])||esYo(m[3]); })[0];
     var h = '<div class="section-title">Liga</div><div class="lg-sub">'+esc(D.competicion)+' · '+esc(D.jornada)+'</div>';
     if(prox){
-      h += '<div class="lg-card"><div class="lg-h">Próximo partido · '+esc(D.proximos.titulo)+'</div><div class="lg-next"><div>'+esc(prox[1])+' <span style="color:var(--line-dim)">vs</span> '+esc(prox[3])+'<small>'+esc(prox[0])+'</small></div></div><button type="button" id="lg-conv" style="margin-top:12px;width:100%;border:none;border-radius:16px;padding:13px;font-size:15px;font-weight:600;background:#B3122B;color:#fff;cursor:pointer">📋 Convocatoria</button></div>';
+      h += '<div class="lg-card"><div class="lg-h">Próximo partido · '+esc(D.proximos.titulo)+'</div><div class="lg-next"><div>'+esc(prox[1])+' <span style="color:var(--line-dim)">vs</span> '+esc(prox[3])+'<small>'+esc(prox[0])+'</small></div></div><button type="button" id="lg-conv" style="margin-top:12px;width:100%;border:none;border-radius:16px;padding:13px;font-size:15px;font-weight:600;background:#B3122B;color:#fff;cursor:pointer">📋 Convocatoria</button>'+
+        (cat==='cadete'?'<button type="button" id="lg-conv-juv" style="margin-top:10px;width:100%;border:none;border-radius:16px;padding:13px;font-size:15px;font-weight:600;background:#1B7A3E;color:#fff;cursor:pointer">⬆️ Cadetes que suben con el Juvenil</button>':'')+'</div>';
     }
     h += '<div class="lg-card"><div class="lg-h">Clasificación</div><table class="lg-tbl"><tr><th>#</th><th>EQUIPO</th><th>PTS</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF</th><th>GC</th></tr>' +
       D.clasificacion.map(function(t,i){
@@ -67,6 +68,10 @@
     var cb = view.querySelector('#lg-conv');
     if(cb && prox) cb.addEventListener('click', function(){
       if(window.Convocatoria) window.Convocatoria.abrir({cat:cat, categoria:(cat==='cadete'?'CADETE':'JUVENIL')+' · '+D.competicion.split(' · ')[0], competicion:D.competicion, partido:prox});
+    });
+    var cj = view.querySelector('#lg-conv-juv');
+    if(cj) cj.addEventListener('click', function(){
+      if(window.Convocatoria) window.Convocatoria.abrir({cat:'cadete', manual:true, categoria:'CADETES CON EL JUVENIL', competicion:'Juvenil', partido:['','Gorliz','','']});
     });
     var ref = document.getElementById('view-notas');
     ref.parentNode.insertBefore(view, ref);

@@ -12,6 +12,10 @@
     var d=DIAS[m[1].toLowerCase()]||m[1], mes=MESES[m[3].toLowerCase()]||m[3];
     return {largo:d+' '+m[2]+' de '+mes, hora:('0'+m[4]).slice(-2)+':'+m[5]};
   }
+  function fechaLarga(iso){ var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||''); if(!m) return '';
+    var dt=new Date(+m[1],+m[2]-1,+m[3]); var d=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][dt.getDay()];
+    var ms=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][dt.getMonth()];
+    return d+' '+dt.getDate()+' de '+ms; }
   function restar60(h){ var p=h.split(':'); if(p.length<2) return ''; var t=(+p[0])*60+(+p[1])-60; if(t<0)t+=1440; return ('0'+Math.floor(t/60)).slice(-2)+':'+('0'+t%60).slice(-2); }
 
   function jugadoresPlantilla(){
@@ -108,15 +112,22 @@
   }
 
   function abrir(o){ // o: {categoria, competicion, partido:[fecha,local,'',visitante]}
-    var fe=parseFecha(o.partido[0]); var clave='cv:'+o.cat+':'+o.partido[0]+o.partido[1]+o.partido[3];
+    var man=!!o.manual; // convocatoria manual (p. ej. cadetes que suben con el juvenil): partido, día y hora a mano
+    var clave=man?'cv:'+o.cat+':manual':'cv:'+o.cat+':'+o.partido[0]+o.partido[1]+o.partido[3];
     var guard={}; try{guard=JSON.parse(ls(clave)||'{}');}catch(_){}
+    if(man) o.partido=['',guard.local||'Gorliz','',guard.visit||''];
+    var fe=man?{largo:fechaLarga(guard.fecha),hora:guard.hora||''}:parseFecha(o.partido[0]);
     var jug=jugadoresPlantilla(), esCasa=/^gorliz/i.test(o.partido[1].replace(/"/g,''));
     var rival=esCasa?o.partido[3]:o.partido[1];
-    var lugarDef=guard.lugar||(esCasa?'Campo de Gorliz':'Campo de '+rival);
+    var lugarDef=guard.lugar||(man?(esCasa?'Campo de Gorliz':''):(esCasa?'Campo de Gorliz':'Campo de '+rival));
     var presDef=guard.pres||restar60(fe.hora);
     var sel=guard.sel||[];
     var ov=document.createElement('div'); ov.className='cv-ov';
-    ov.innerHTML='<div class="cv-sh"><h2>Convocatoria</h2><div style="font-size:14px;color:#6b6e76">'+esc(o.partido[1])+' vs '+esc(o.partido[3])+'<br>'+esc(fe.largo)+' · '+esc(fe.hora)+' h</div>'+
+    ov.innerHTML='<div class="cv-sh"><h2>'+(man?'Cadetes con el Juvenil':'Convocatoria')+'</h2>'+
+     (man?'<div class="cv-row"><div><label>Local</label><input type="text" id="cvLocal" value="'+esc(o.partido[1])+'"></div><div><label>Visitante</label><input type="text" id="cvVisit" placeholder="Rival" value="'+esc(o.partido[3])+'"></div></div>'+
+       '<label>Competición</label><input type="text" id="cvComp" value="'+esc(guard.comp||o.competicion||'')+'">'+
+       '<label>Fecha del partido</label><input type="date" id="cvFecha" value="'+esc(guard.fecha||'')+'">'
+     :'<div style="font-size:14px;color:#6b6e76">'+esc(o.partido[1])+' vs '+esc(o.partido[3])+'<br>'+esc(fe.largo)+' · '+esc(fe.hora)+' h</div>')+
      '<label>Lugar</label><input type="text" id="cvLugar" value="'+esc(lugarDef)+'">'+
      '<div class="cv-row"><div><label>Hora del partido</label><input type="time" id="cvHora" value="'+esc(fe.hora)+'"></div><div><label>Presentación (1 h antes)</label><input type="time" id="cvPres" value="'+esc(presDef)+'"></div></div>'+
      '<label>Jugadores <span id="cvCont"></span></label><div style="display:flex;gap:8px;margin-bottom:6px"><button type="button" class="cv-mini" id="cvTodos">Todos</button><button type="button" class="cv-mini" id="cvNinguno">Ninguno</button></div>'+
@@ -127,7 +138,9 @@
     document.body.appendChild(ov);
     var q=function(s){return ov.querySelector(s);}, chks=function(){return ov.querySelectorAll('#cvLista input[type=checkbox]');};
     function contar(){ var n=0; chks().forEach(function(c){if(c.checked)n++;}); q('#cvCont').textContent='· '+n+' convocados'; }
-    function guardar(){ var s=[]; chks().forEach(function(c){ if(c.checked) s.push(jug[+c.dataset.i].id); }); ls(clave,JSON.stringify({sel:s,lugar:q('#cvLugar').value,pres:q('#cvPres').value,notas:q('#cvNotas').value})); }
+    function guardar(){ var s=[]; chks().forEach(function(c){ if(c.checked) s.push(jug[+c.dataset.i].id); }); var g={sel:s,lugar:q('#cvLugar').value,pres:q('#cvPres').value,notas:q('#cvNotas').value};
+      if(man){ g.local=q('#cvLocal').value; g.visit=q('#cvVisit').value; g.comp=q('#cvComp').value; g.fecha=q('#cvFecha').value; g.hora=q('#cvHora').value; }
+      ls(clave,JSON.stringify(g)); }
     ov.addEventListener('input',function(){contar();guardar();}); ov.addEventListener('change',function(){contar();guardar();}); contar();
     q('#cvHora').addEventListener('change',function(){ q('#cvPres').value=restar60(q('#cvHora').value); guardar(); });
     q('#cvTodos').onclick=function(){chks().forEach(function(c){c.checked=true;});contar();guardar();};
@@ -137,9 +150,14 @@
     async function hacer(tipo){
       var elegidos=[]; chks().forEach(function(c){ if(c.checked) elegidos.push(jug[+c.dataset.i]); });
       if(!elegidos.length){ q('#cvMsg').style.color='#B3122B'; q('#cvMsg').textContent='Elige al menos un jugador.'; return; }
+      if(man){
+        if(!q('#cvVisit').value.trim()||!q('#cvLocal').value.trim()){ q('#cvMsg').style.color='#B3122B'; q('#cvMsg').textContent='Pon los dos equipos del partido.'; return; }
+        if(!q('#cvFecha').value||!q('#cvHora').value){ q('#cvMsg').style.color='#B3122B'; q('#cvMsg').textContent='Pon el día y la hora del partido.'; return; }
+        o.partido=['',q('#cvLocal').value.trim(),'',q('#cvVisit').value.trim()]; o.competicion=q('#cvComp').value.trim(); fe={largo:fechaLarga(q('#cvFecha').value),hora:q('#cvHora').value};
+      }
       q('#cvMsg').style.color='#1B7A3E'; q('#cvMsg').textContent='Preparando…';
       var cv=await dibujar({categoria:o.categoria,competicion:o.competicion,local:o.partido[1],visitante:o.partido[3],fecha:fe.largo,hora:q('#cvHora').value+' h',lugar:q('#cvLugar').value||'—',presentacion:q('#cvPres').value,jugadores:elegidos}); // las notas NO se dibujan
-      var base='Convocatoria-Gorliz-'+o.cat+'-'+(fe.largo.replace(/\s+/g,'-'));
+      var base='Convocatoria-Gorliz-'+o.cat+(man?'-con-juvenil':'')+'-'+(fe.largo.replace(/\s+/g,'-'));
       if(tipo==='jpg'){ var b=await blobDe(cv,'image/jpeg',0.92); await entregar(b,base+'.jpg',q('#cvMsg')); }
       else{ var jb=await blobDe(cv,'image/jpeg',0.92); var buf=new Uint8Array(await jb.arrayBuffer()); await entregar(jpgAPdf(buf,cv.width,cv.height),base+'.pdf',q('#cvMsg')); }
       if(q('#cvMsg').textContent==='Preparando…') q('#cvMsg').textContent='';
