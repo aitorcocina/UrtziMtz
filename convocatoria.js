@@ -88,7 +88,7 @@
   }
 
   // ---------- PDF mínimo (una página A4 con la imagen JPG) ----------
-  function jpgAPdf(jpgBytes,w,h){
+  function jpgAPdf(jpgBytes,w,h,titulo){
     var enc=new TextEncoder(), parts=[], offs=[], len=0;
     function add(b){ if(typeof b==='string') b=enc.encode(b); parts.push(b); len+=b.length; }
     function obj(n,body){ offs[n]=len; add(n+' 0 obj\n'); add(body); add('\nendobj\n'); }
@@ -98,15 +98,17 @@
     obj(3,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>');
     offs[4]=len; add('4 0 obj\n<< /Type /XObject /Subtype /Image /Width '+w+' /Height '+h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpgBytes.length+' >>\nstream\n'); add(jpgBytes); add('\nendstream\nendobj\n');
     var cont='q 595.28 0 0 841.89 0 0 cm /Im0 Do Q'; obj(5,'<< /Length '+cont.length+' >>\nstream\n'+cont+'\nendstream');
-    var xr=len; add('xref\n0 6\n0000000000 65535 f \n'); for(var i=1;i<=5;i++) add(('0000000000'+offs[i]).slice(-10)+' 00000 n \n');
-    add('trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF');
+    var t=String(titulo||'Convocatoria').replace(/[()\\]/g,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    obj(6,'<< /Title ('+t+') /Producer (Centro de Entrenamiento) >>');
+    var xr=len; add('xref\n0 7\n0000000000 65535 f \n'); for(var i=1;i<=6;i++) add(('0000000000'+offs[i]).slice(-10)+' 00000 n \n');
+    add('trailer\n<< /Size 7 /Root 1 0 R /Info 6 0 R >>\nstartxref\n'+xr+'\n%%EOF');
     return new Blob(parts,{type:'application/pdf'});
   }
   function blobDe(c,tipo,q){return new Promise(function(r){c.toBlob(r,tipo,q);});}
 
   async function entregar(blob,nombre,msgEl){
     var f=new File([blob],nombre,{type:blob.type});
-    try{ if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:'Convocatoria Gorliz'}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
+    try{ if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:nombre.replace(/\.(pdf|jpg)$/,'')}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
     var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=nombre; document.body.appendChild(a); a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},4000);
     if(msgEl) msgEl.textContent='Archivo descargado ('+nombre+'). Desde el móvil se abre el menú de compartir directamente.';
   }
@@ -157,9 +159,9 @@
       }
       q('#cvMsg').style.color='#1B7A3E'; q('#cvMsg').textContent='Preparando…';
       var cv=await dibujar({categoria:o.categoria,competicion:o.competicion,local:o.partido[1],visitante:o.partido[3],fecha:fe.largo,hora:q('#cvHora').value+' h',lugar:q('#cvLugar').value||'—',presentacion:q('#cvPres').value,jugadores:elegidos}); // las notas NO se dibujan
-      var base='Convocatoria-Gorliz-'+o.cat+(man?'-con-juvenil':'')+'-'+(fe.largo.replace(/\s+/g,'-'));
+      var base='Convocatoria '+(o.cat==='cadete'?'cadete':'juvenil'); // nombre fijo del archivo: «Convocatoria juvenil» / «Convocatoria cadete»
       if(tipo==='jpg'){ var b=await blobDe(cv,'image/jpeg',0.92); await entregar(b,base+'.jpg',q('#cvMsg')); }
-      else{ var jb=await blobDe(cv,'image/jpeg',0.92); var buf=new Uint8Array(await jb.arrayBuffer()); await entregar(jpgAPdf(buf,cv.width,cv.height),base+'.pdf',q('#cvMsg')); }
+      else{ var jb=await blobDe(cv,'image/jpeg',0.92); var buf=new Uint8Array(await jb.arrayBuffer()); await entregar(jpgAPdf(buf,cv.width,cv.height,base),base+'.pdf',q('#cvMsg')); }
       if(q('#cvMsg').textContent==='Preparando…') q('#cvMsg').textContent='';
     }
     q('#cvJpg').onclick=function(){hacer('jpg');}; q('#cvPdf').onclick=function(){hacer('pdf');};
