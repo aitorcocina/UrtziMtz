@@ -1,8 +1,24 @@
 /* competicion.js — pestaña "Liga" (clasificación y partidos) en plantilla-juvenil / plantilla-cadete.
-   Lee los datos de competicion-data.js. Uso: <script src="competicion-data.js"></script><script src="competicion.js" defer></script> */
+   Datos: primero intenta leer la clave "competicion" de Supabase (la actualiza cada lunes la función
+   actualizar-fvf con los datos de la Federación Vizcaína); si no puede, usa competicion-data.js.
+   Uso: <script src="competicion-data.js"></script><script src="competicion.js" defer></script> */
 (function(){
   'use strict';
   var cat = /cadete/i.test(location.pathname + document.title) ? 'cadete' : 'juvenil';
+  var SB_URL = 'https://bzjzedwbahgitunoksps.supabase.co', SB_KEY = 'sb_publishable_GwXGrJorusdd94VeHBH4Lg_C657Knj5';
+  function cargarDeSupabase(){
+    if(!window.fetch) return Promise.resolve();
+    var ctl = window.AbortController ? new AbortController() : null;
+    if(ctl) setTimeout(function(){ ctl.abort(); }, 5000);
+    return fetch(SB_URL + '/rest/v1/team_data?key=eq.competicion&select=value', { headers: { apikey: SB_KEY }, signal: ctl ? ctl.signal : undefined })
+      .then(function(r){ return r.ok ? r.json() : []; })
+      .then(function(rows){
+        var v = rows && rows[0] && rows[0].value, F = window.COMPETICION_DATA || {};
+        if(v && v[cat] && (!F.actualizado || String(v.actualizado) >= String(F.actualizado))) window.COMPETICION_DATA = Object.assign({}, F, v);
+      })
+      .catch(function(){ /* sin conexión: se usan los datos del fichero */ });
+  }
+  function fuente(){ return (window.COMPETICION_DATA && window.COMPETICION_DATA.fuente) || 'futbuteo.com (no oficial)'; }
   function init(){
     var D = window.COMPETICION_DATA && window.COMPETICION_DATA[cat];
     var tabbar = document.querySelector('nav.tabbar'), main = document.querySelector('main') || document.querySelector('.app');
@@ -62,7 +78,7 @@
       }).join('') + '</table></div>';
     h += '<div class="lg-card"><div class="lg-h">Resultados · '+esc(D.ultimos.titulo)+'</div>'+filas(D.ultimos.partidos)+'</div>';
     h += '<div class="lg-card"><div class="lg-h">Próxima jornada · '+esc(D.proximos.titulo)+'</div>'+filas(D.proximos.partidos)+'</div>';
-    h += '<div class="lg-pie">Actualizado: '+esc(window.COMPETICION_DATA.actualizado)+' · Fuente: futbuteo.com (no oficial)</div>';
+    h += '<div class="lg-pie">Actualizado: '+esc(window.COMPETICION_DATA.actualizado)+' · Fuente: '+esc(fuente())+'</div>';
     var view = document.createElement('div');
     view.className = 'view'; view.id = 'view-competicion'; view.innerHTML = h;
     var cb = view.querySelector('#lg-conv');
@@ -100,7 +116,7 @@
         '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;text-align:center;margin-bottom:10px">' +
         [['PJ',pj],['G',g],['E',e],['P',p],['GF',gf],['GC',gc]].map(function(x){return '<div style="background:var(--pitch-light);border-radius:12px;padding:8px 0"><div style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums">'+x[1]+'</div><div style="font-size:10px;letter-spacing:.08em;color:var(--line-dim)">'+x[0]+'</div></div>';}).join('') +
         '</div><div class="lg-sub" style="margin:0 0 6px">Diferencia de goles: '+(dif>0?'+':'')+dif+'</div>' + items.join('') +
-        '<div class="lg-pie">Datos de la liga (futbuteo.com, no oficial)</div></div>';
+        '<div class="lg-pie">Datos de la liga: '+esc(fuente())+'</div></div>';
       var vp = document.getElementById('view-partidos');
       if(vp){ var t = vp.querySelector('.section-title'); var w = document.createElement('div'); w.innerHTML = box; if(t) t.insertAdjacentElement('afterend', w.firstChild); else vp.insertBefore(w.firstChild, vp.firstChild); }
     }
@@ -114,5 +130,7 @@
     });
     btn.click(); // al abrir, lo primero que se ve es la Liga
   }
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+  var listo = cargarDeSupabase();
+  function arrancar(){ listo.then(init); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar); else arrancar();
 })();
