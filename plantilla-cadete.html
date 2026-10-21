@@ -518,7 +518,7 @@
   .um-av{padding:0 !important; overflow:hidden; background:radial-gradient(circle at 50% 35%, #fff 0%, #f6e3e6 100%) !important;}
   .um-av img{width:100%; height:100%; object-fit:cover; object-position:50% 8%; display:block; transform:scale(1.15); transform-origin:50% 20%;}
 </style>
-<link rel="stylesheet" href="tema-claro.css"><script src="avatar.js?v=20261015b"></script><script src="dictado-voz.js" defer></script><script src="competicion-data.js?v=20261015b"></script><script src="competicion.js?v=20261021a" defer></script><script src="convocatoria.js?v=20261015b" defer></script><script src="acta.js?v=20261021c" defer></script><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#B3122B"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Entrenamiento"></head>
+<link rel="stylesheet" href="tema-claro.css"><script src="avatar.js?v=20261015b"></script><script src="dictado-voz.js" defer></script><script src="competicion-data.js?v=20261015b"></script><script src="competicion.js?v=20261021a" defer></script><script src="convocatoria.js?v=20261021a" defer></script><script src="acta.js?v=20261021c" defer></script><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#B3122B"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Entrenamiento"></head>
 <body>
 <div class="field-lines"></div>
 <div class="app">
@@ -970,7 +970,7 @@
           ? `<img class="player-photo" src="${p.photo}">`
           : `<div class="player-photo placeholder um-av">${avatarHTML(p, players)}</div>`}
         <div class="player-info">
-          <p class="player-name">${p.number ? `<span class="player-num">${escapeHtml(p.number)}</span>` : ''}${nombreHTML(p)}</p>
+          <p class="player-name" data-name="${escapeHtml(p.name)}">${p.number ? `<span class="player-num">${escapeHtml(p.number)}</span>` : ''}${nombreHTML(p)}</p>
           <p class="player-phone">${p.phone ? `<a href="tel:${escapeHtml(p.phone)}">${escapeHtml(p.phone)}</a>` : 'Sin teléfono'}</p>
         </div>
         <div class="player-actions">
@@ -1274,7 +1274,7 @@
       const type = matchResultType(m);
       const hasScore = type !== 'pending';
       const conv = m.convocatoria;
-      const convCount = conv && Array.isArray(conv.playerIds) ? conv.playerIds.length : 0;
+      const convCount = hasScore ? 0 : convocadosLiga(m);
       const hasConv = convCount > 0;
       const metaBits = [];
       if(conv && conv.time) metaBits.push(`🕒 ${escapeHtml(conv.time)}`);
@@ -1311,7 +1311,7 @@
     list.querySelectorAll('.conv-btn').forEach(btn=>{
       btn.addEventListener('click', (e)=>{
         e.stopPropagation();
-        openConvocatoriaModal(matches.find(m=>m.id===btn.dataset.id));
+        abrirConvocatoriaLiga(matches.find(m=>m.id===btn.dataset.id));
       });
     });
     list.querySelectorAll('[data-action="rival"]').forEach(el=>{
@@ -1412,7 +1412,35 @@
     openConvocatoriaModal(matches.find(m=>m.id===id));
   });
 
-  /* ---------- Convocatoria ---------- */
+  /* ---------- Convocatoria (la misma ventana que en Liga: convocatoria.js) ---------- */
+  const CAT_CONV = TEAM_PREFIX.replace(':','');
+  const normEq = t => String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/"/g,'').replace(/\s+/g,' ').trim();
+  const DIAS_C = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'], MESES_C = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  // Devuelve el partido con el mismo formato que la pestaña Liga: [fecha-hora, local, marcador, visitante]
+  function partidoLiga(m){
+    const D = window.COMPETICION_DATA && window.COMPETICION_DATA[CAT_CONV];
+    const rival = normEq(m.rival);
+    const prox = D && D.proximos && (D.proximos.partidos || []).find(p => /gorliz/i.test(p[1]+p[3]) && (normEq(p[1]) === rival || normEq(p[3]) === rival));
+    if(prox) return prox; // el de esta semana: exactamente el mismo que en Liga
+    const eq = (D && D.equipo) ? D.equipo.replace(/^GORLIZ/i,'Gorliz') : 'Gorliz';
+    let f = '';
+    if(m.date){ const [y,mo,d] = m.date.split('-').map(Number); const dt = new Date(y, mo-1, d); f = `${DIAS_C[dt.getDay()]} ${d} ${MESES_C[mo-1]}${m.hora ? ' '+m.hora : ''}`; }
+    return m.venue === 'fuera' ? [f, m.rival || 'Rival', '', eq] : [f, eq, '', m.rival || 'Rival'];
+  }
+  function abrirConvocatoriaLiga(m){
+    if(!m) return;
+    if(!window.Convocatoria){ toast('Cargando… vuelve a tocar en un momento'); return; }
+    const D = window.COMPETICION_DATA && window.COMPETICION_DATA[CAT_CONV];
+    const comp = (D && D.competicion) || '';
+    // la convocatoria lee los jugadores de la pestaña Plantilla
+    if(!document.querySelector('.player-card')) renderPlayers();
+    window.Convocatoria.abrir({cat:CAT_CONV, categoria:(CAT_CONV==='cadete'?'CADETE':'JUVENIL')+' · '+comp.split(' · ')[0], competicion:comp, partido:partidoLiga(m)});
+  }
+  function convocadosLiga(m){
+    try{ const p = partidoLiga(m); const g = JSON.parse(localStorage.getItem('cv:'+CAT_CONV+':'+p[0]+p[1]+p[3]) || '{}'); return (g.sel||[]).length; }catch(_){ return 0; }
+  }
+
+  /* ---------- Convocatoria antigua ---------- */
   let convocatoriaMatchId = null;
   let convocatoriaSelection = [];
 

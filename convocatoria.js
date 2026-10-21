@@ -22,7 +22,7 @@
     var out=[]; document.querySelectorAll('.player-card').forEach(function(c){
       var n=c.querySelector('.player-name'); if(!n) return;
       var num=(c.querySelector('.player-num')||{}).textContent||'';
-      var nombre=n.textContent.replace(num,'').trim();
+      var nombre=(n.getAttribute('data-name')||n.textContent.replace(num,'')).trim(); // data-name: nombre completo (el nombre se pinta en dos líneas)
       if(nombre) out.push({id:c.getAttribute('data-id')||nombre, nombre:nombre, num:num.trim()});
     });
     out.sort(function(a,b){ var x=parseInt(a.num,10), y=parseInt(b.num,10); if(isNaN(x)&&isNaN(y)) return a.nombre.localeCompare(b.nombre,'es'); if(isNaN(x)) return 1; if(isNaN(y)) return -1; return x-y; });
