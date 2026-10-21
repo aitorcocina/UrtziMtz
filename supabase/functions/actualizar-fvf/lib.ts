@@ -285,6 +285,15 @@ export async function procesar(sb: any, cat: string, dry: boolean, hoy: string, 
   const manual: Record<string, string | null> = config.manual || {};
   const excluir = new Set<string>(config.excluir || []);
   // La caché solo guarda lo leído de la federación (no toca datos de la app), así que se guarda también en pruebas
+  // Resultados de todos los equipos por jornada (para el informe del próximo rival)
+  cache.resultados ||= {};
+  const guardarResultados = (n: number, res: any[], jl: any[] | null) => {
+    if (!res.some((r: any) => r.gl !== null)) return;
+    cache.resultados[n] = res.filter((r: any) => !/atsedena|descansa/i.test(r.local + r.visitante)).map((r: any) => {
+      const h = (jl || []).find((x: any) => norm(x.local) === norm(r.local) && norm(x.visitante) === norm(r.visitante));
+      return { local: r.local, visitante: r.visitante, gl: r.gl, gv: r.gv, fecha: h?.fecha || null };
+    });
+  };
   const guardarCache = async () => { await sb.from("team_data").upsert({ key: `${cat}:fvf-cache`, value: cache, updated_at: new Date().toISOString() }); };
 
   // 1) Calendario y última jornada que ya debería estar jugada
@@ -321,6 +330,7 @@ export async function procesar(sb: any, cat: string, dry: boolean, hoy: string, 
     if (sinTiempo()) { await guardarCache(); throw new Error(`PARCIAL: leídas hasta la jornada ${jd.n - 1}; vuelve a ejecutar para seguir.`); }
     const cl = jd.n === J ? clas : parseClasif(await get(urlClasif(c, jd.n)));
     const jl = parseJornada(await get(urlJornada(c, jd.n)));
+    guardarResultados(jd.n, cl.res, jl);
     const r = cl.res.find((x: any) => esNos(c, x.local) || esNos(c, x.visitante));
     if (!r || r.gl === null) { avisos.push(`Jornada ${jd.n}: sin resultado publicado.`); continue; }
     const jp = jl.find((x: any) => esNos(c, x.local) || esNos(c, x.visitante));
@@ -368,6 +378,35 @@ export async function procesar(sb: any, cat: string, dry: boolean, hoy: string, 
       }).sort((a: any, b: any) => a.f.localeCompare(b.f)).map((x: any) => x.row),
     };
   }
+  // Informe del próximo rival: últimos 4 resultados y su posición
+  let rivalInfo: any = null;
+  if (J < total) {
+    const calN = cal.find((x) => x.n === J + 1)!;
+    const pn = calN.partidos.find((x) => esNos(c, x.local) || esNos(c, x.visitante));
+    if (pn && !/atsedena|descansa/i.test(pn.local + pn.visitante)) {
+      const rival = esNos(c, pn.local) ? pn.visitante : pn.local;
+      if (!cache.resultados[J]) guardarResultados(J, clas.res, jornJ);
+      const ult: any[] = [];
+      for (let n = J; n >= 1 && ult.length < 4; n--) {
+        if (!cache.resultados[n]) {
+          if (sinTiempo()) break;
+          try { guardarResultados(n, parseClasif(await get(urlClasif(c, n))).res, null); } catch (_) { break; }
+        }
+        const r = (cache.resultados[n] || []).find((x: any) => norm(x.local) === norm(rival) || norm(x.visitante) === norm(rival));
+        if (!r || r.gl === null) continue;
+        const casa = norm(r.local) === norm(rival);
+        const f = casa ? r.gl : r.gv, a = casa ? r.gv : r.gl;
+        ult.push({ jornada: n, fecha: r.fecha, local: titulo(r.local), visitante: titulo(r.visitante), gl: r.gl, gv: r.gv, casa, res: f > a ? "G" : f < a ? "P" : "E" });
+      }
+      const fr = clas.tabla.find((x: any) => norm(x.equipo) === norm(rival));
+      rivalInfo = {
+        jornada: J + 1, rival: titulo(rival), casa: esNos(c, pn.local),
+        puesto: fr?.pos ?? null, puntos: fr?.pts ?? null, pj: fr?.pj ?? null, g: fr?.g ?? null, e: fr?.e ?? null, p: fr?.p ?? null, gf: fr?.gf ?? null, gc: fr?.gc ?? null,
+        ultimos: ult, actualizado: hoy,
+      };
+      if (ult.length < 4) avisos.push(`Rival: solo ${ult.length} resultados disponibles.`);
+    }
+  }
   const liga = {
     competicion: c.competicion, jornada: `Jornada ${J} de ${total}`, equipo: c.equipo,
     clasificacion: clas.tabla.map((x: any) => [titulo(x.equipo), x.pts, x.pj, x.g, x.e, x.p, x.gf, x.gc]),
@@ -409,6 +448,7 @@ export async function procesar(sb: any, cat: string, dry: boolean, hoy: string, 
     const calN = cal.find((x) => x.n === J + 1)!;
     const p = calN.partidos.find((x) => esNos(c, x.local) || esNos(c, x.visitante));
     const m = matches.find((x) => x.jornada === J + 1);
+    if (rivalInfo && m) rivalInfo.matchId = m.id;
     if (p && m && !/atsedena|descansa/i.test(p.local + p.visitante)) {
       const jp = parseJornada(await get(urlJornada(c, J + 1))).find((x: any) => esNos(c, x.local) || esNos(c, x.visitante));
       const casa = esNos(c, p.local);
@@ -518,6 +558,7 @@ export async function procesar(sb: any, cat: string, dry: boolean, hoy: string, 
       { key: `${cat}:fvf-cache`, value: cache, updated_at: now },
       { key: `${cat}:actas`, value: actasApp, updated_at: now },
     ];
+    if (rivalInfo) ups.push({ key: `${cat}:rival`, value: rivalInfo, updated_at: now });
     if (renombrados.length) {
       ups.push({ key: `backup-${cat}-players-${hoy}-antes-nombres-fvf`, value: (await kv(`${cat}:players`)), updated_at: now });
       ups.push({ key: `${cat}:players`, value: jugadores, updated_at: now });
@@ -530,6 +571,6 @@ export async function procesar(sb: any, cat: string, dry: boolean, hoy: string, 
     if (error) throw new Error("Error guardando en Supabase: " + error.message);
   }
   if (renombrados.length) avisos.push(`Nombres cambiados: ${renombrados.length}.`);
-  return { cat, escrito: !dry, resumen, avisos, liga, matches, stats, contados: cont, partidosEquipo, minutos, actasApp, renombrados };
+  return { cat, escrito: !dry, rivalInfo, resumen, avisos, liga, matches, stats, contados: cont, partidosEquipo, minutos, actasApp, renombrados };
 }
 

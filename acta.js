@@ -7,7 +7,14 @@
   'use strict';
   var cat = /cadete/i.test(location.pathname + document.title) ? 'cadete' : 'juvenil';
   var SB_URL = 'https://bzjzedwbahgitunoksps.supabase.co', SB_KEY = 'sb_publishable_GwXGrJorusdd94VeHBH4Lg_C657Knj5';
-  var datos = null, cargadoEn = 0;
+  var datos = null, cargadoEn = 0, rivalDatos = null, rivalEn = 0;
+  function cargarRival(){
+    if(rivalDatos && Date.now() - rivalEn < 120000) return Promise.resolve(rivalDatos);
+    return fetch(SB_URL + '/rest/v1/team_data?key=eq.' + encodeURIComponent(cat + ':rival') + '&select=value', { headers: { apikey: SB_KEY } })
+      .then(function(r){ return r.ok ? r.json() : []; })
+      .then(function(rows){ rivalDatos = (rows && rows[0] && rows[0].value) || null; rivalEn = Date.now(); return rivalDatos; })
+      .catch(function(){ return rivalDatos; });
+  }
 
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function esGorliz(n){ return /^gorliz/i.test(String(n || '')); }
@@ -57,7 +64,16 @@
     '.ac-gol.nos .mk{color:var(--verde)}' +
     '.ac-in{color:var(--verde);font-weight:700}.ac-out{color:var(--red);font-weight:700}' +
     '.ac-vacio{font-size:12.5px;color:var(--line-dim);padding:6px 2px}' +
-    '.ac-pie{margin-top:18px;font-size:11px;color:var(--line-dim);text-align:center}.ac-pie a{color:var(--line-dim)}';
+    '.ac-pie{margin-top:18px;font-size:11px;color:var(--line-dim);text-align:center}.ac-pie a{color:var(--line-dim)}' +
+    '.rv-link{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}' +
+    '.rv-link::after{content:" ›";opacity:.6;text-decoration:none;display:inline-block;margin-left:2px}' +
+    '.rv-racha{display:flex;gap:6px;justify-content:center;margin:4px 0 14px}' +
+    '.rv-b{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:Oswald,sans-serif;font-weight:600;font-size:14px;color:#fff}' +
+    '.rv-b.G{background:var(--verde)}.rv-b.E{background:#8b8d93}.rv-b.P{background:var(--red)}' +
+    '.rv-res{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:13px;min-width:44px;text-align:center;background:var(--pitch-light);border-radius:8px;padding:2px 6px}' +
+    '.rv-row .yo{font-weight:700}' +
+    '.rv-tab{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;margin-bottom:6px}' +
+    '.rv-tab div{background:var(--pitch-light);border-radius:12px;padding:8px 0}.rv-tab b{display:block;font-size:17px;font-variant-numeric:tabular-nums}.rv-tab span{font-size:9.5px;letter-spacing:.08em;color:var(--line-dim);text-transform:uppercase}';
   document.head.appendChild(css);
 
   var ov = document.createElement('div');
@@ -117,6 +133,41 @@
     sh.scrollTop = 0;
   }
 
+  function pintarRival(r){
+    var sh = document.getElementById('acta-sh');
+    if(!r){
+      sh.innerHTML = '<div class="ac-top"><div class="ac-tit">Próximo rival</div><button class="ac-x" aria-label="Cerrar">×</button></div><div class="ac-vacio">Todavía no hay datos del rival. Se cargan solos cada lunes a las 16:00.</div>';
+      sh.querySelector('.ac-x').onclick = cerrar; return;
+    }
+    var ult = r.ultimos || [];
+    var h = '<div class="ac-top"><div class="ac-tit">Próximo rival · Jornada ' + esc(r.jornada) + '</div><button class="ac-x" aria-label="Cerrar">×</button></div>' +
+      '<div class="ac-score" style="grid-template-columns:1fr"><div class="eq" style="text-align:center;font-size:18px">' + esc(r.rival) + '</div></div>' +
+      '<div class="ac-meta">' + (r.casa ? 'Jugamos en casa' : 'Jugamos fuera') + (r.puesto ? ' · ' + esc(r.puesto) + 'º en la clasificación' : '') + '</div>';
+    if(r.puesto) h += '<div class="rv-tab"><div><b>' + esc(r.puntos) + '</b><span>Puntos</span></div><div><b>' + esc(r.g) + '-' + esc(r.e) + '-' + esc(r.p) + '</b><span>G-E-P</span></div><div><b>' + esc(r.gf) + '</b><span>Goles a favor</span></div><div><b>' + esc(r.gc) + '</b><span>Goles en contra</span></div></div>';
+    h += '<div class="ac-sec"><div class="ac-h">Últimos ' + ult.length + ' partidos</div>';
+    if(ult.length){
+      h += '<div class="rv-racha">' + ult.slice().reverse().map(function(u){ return '<span class="rv-b ' + u.res + '" title="Jornada ' + esc(u.jornada) + '">' + u.res + '</span>'; }).join('') + '</div>';
+      h += ult.map(function(u){
+        var lo = u.casa ? ' yo' : '', vi = u.casa ? '' : ' yo';
+        return '<div class="ac-row rv-row"><span class="ac-min">J' + esc(u.jornada) + '</span><span class="ac-nom"><span class="' + lo + '">' + esc(u.local) + '</span><small>' + (u.fecha ? esc(fechaTxt(u.fecha)) + ' · ' : '') + (u.casa ? 'En casa' : 'Fuera') + '</small></span><span class="rv-res">' + esc(u.gl) + '-' + esc(u.gv) + '</span><span class="ac-nom" style="text-align:right"><span class="' + vi + '">' + esc(u.visitante) + '</span></span></div>';
+      }).join('');
+    } else h += '<div class="ac-vacio">Sin partidos jugados todavía.</div>';
+    h += '</div><div class="ac-pie">Fuente: Federación Vizcaína de Fútbol · se actualiza cada lunes</div>';
+    sh.innerHTML = h;
+    sh.querySelector('.ac-x').onclick = cerrar;
+    sh.scrollTop = 0;
+  }
+  window.RivalFVF = {
+    abrir: function(){
+      montar();
+      var sh = document.getElementById('acta-sh');
+      sh.innerHTML = '<div class="spinner"></div>';
+      ov.classList.add('open'); document.body.style.overflow = 'hidden';
+      cargarRival().then(pintarRival);
+    },
+    // id del partido de la app al que corresponde el informe (el de esta semana)
+    partido: function(){ return cargarRival().then(function(r){ return r && r.matchId; }); }
+  };
   window.ActaFVF = {
     abrir: function(id){
       montar();
@@ -127,5 +178,5 @@
     },
     precargar: function(){ return cargar(); }
   };
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ montar(); cargar(); }); else { montar(); cargar(); }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ montar(); cargar(); cargarRival(); }); else { montar(); cargar(); cargarRival(); }
 })();

@@ -518,7 +518,7 @@
   .um-av{padding:0 !important; overflow:hidden; background:radial-gradient(circle at 50% 35%, #fff 0%, #f6e3e6 100%) !important;}
   .um-av img{width:100%; height:100%; object-fit:cover; object-position:50% 8%; display:block; transform:scale(1.15); transform-origin:50% 20%;}
 </style>
-<link rel="stylesheet" href="tema-claro.css"><script src="avatar.js?v=20261015b"></script><script src="dictado-voz.js" defer></script><script src="competicion-data.js?v=20261015b"></script><script src="competicion.js?v=20261021a" defer></script><script src="convocatoria.js?v=20261015b" defer></script><script src="acta.js?v=20261021b" defer></script><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#B3122B"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Entrenamiento"></head>
+<link rel="stylesheet" href="tema-claro.css"><script src="avatar.js?v=20261015b"></script><script src="dictado-voz.js" defer></script><script src="competicion-data.js?v=20261015b"></script><script src="competicion.js?v=20261021a" defer></script><script src="convocatoria.js?v=20261015b" defer></script><script src="acta.js?v=20261021c" defer></script><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#B3122B"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Entrenamiento"></head>
 <body>
 <div class="field-lines"></div>
 <div class="app">
@@ -1258,7 +1258,11 @@
 
   const badgeLabel = {win:'Ganado', draw:'Empate', loss:'Perdido', pending:'Pendiente'};
 
+  // Partido de esta semana con informe del rival (lo marca la función de la federación)
+  let rivalMatchId = null;
+  if(window.RivalFVF) window.RivalFVF.partido().then(id=>{ if(id && id !== rivalMatchId){ rivalMatchId = id; if(document.getElementById('matchesList') && document.querySelector('#view-partidos.active')) renderMatches(); } });
   function renderMatches(){
+    if(!rivalMatchId && window.RivalFVF) window.RivalFVF.partido().then(id=>{ if(id && !rivalMatchId){ rivalMatchId = id; renderMatches(); } });
     renderMatchSummary();
     const list = $('matchesList');
     if(matches.length === 0){
@@ -1279,7 +1283,7 @@
       <div class="match-card" data-id="${m.id}">
         <div class="match-top">
           <div>
-            <div class="match-rival">${escapeHtml(m.rival || 'Rival por definir')}</div>
+            <div class="match-rival${m.id === rivalMatchId ? ' rv-link' : ''}"${m.id === rivalMatchId ? ` data-action="rival" title="Ver los últimos resultados del rival"` : ''}>${escapeHtml(m.rival || 'Rival por definir')}</div>
             <div class="match-date">${formatMatchDate(m.date)}${m.hora ? ` · ${escapeHtml(m.hora)}` : ''}</div>
             <div class="match-venue">${m.venue === 'fuera' ? '🚗 Fuera' : m.venue === 'casa' ? '🏠 En casa' : '⚠️ Falta indicar casa/fuera'}</div>
           </div>
@@ -1308,6 +1312,12 @@
       btn.addEventListener('click', (e)=>{
         e.stopPropagation();
         openConvocatoriaModal(matches.find(m=>m.id===btn.dataset.id));
+      });
+    });
+    list.querySelectorAll('[data-action="rival"]').forEach(el=>{
+      el.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        if(window.RivalFVF) window.RivalFVF.abrir();
       });
     });
     list.querySelectorAll('.acta-btn').forEach(btn=>{
