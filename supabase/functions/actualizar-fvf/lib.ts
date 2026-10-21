@@ -48,10 +48,14 @@ export function titulo(n: string) {
   }).join(" ");
 }
 // "ORTEGA PEREZ, PAU" -> "Pau Ortega Perez"
-export function nombreBonito(n: string) {
+const tituloNombre = (x: string) => x.toLowerCase().split(/\s+/).map((w, i) => (i > 0 && ["de", "del", "la", "y"].includes(w)) ? w : w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+export function partesNombre(n: string) {
   const [ap, no] = n.split(",").map((x) => x.trim());
-  const t = (x: string) => x.toLowerCase().split(/\s+/).map((w, i) => (i > 0 && ["de", "del", "la", "y"].includes(w)) ? w : w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-  return no ? `${t(no)} ${t(ap)}` : t(ap);
+  return no ? { nombre: tituloNombre(no), apellidos: tituloNombre(ap) } : { nombre: tituloNombre(ap), apellidos: "" };
+}
+export function nombreBonito(n: string) {
+  const p = partesNombre(n);
+  return p.apellidos ? `${p.nombre} ${p.apellidos}` : p.nombre;
 }
 const DIAS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -397,6 +401,21 @@ export async function procesar(sb: any, cat: string, dry: boolean, hoy: string, 
     if (!m) continue;
     m.scoreFor = v.gf; m.scoreAgainst = v.gc;
     if (v.fecha) m.date = iso(v.fecha);
+    // nombre oficial del rival solo en las dos últimas jornadas (se va poniendo semana a semana)
+    if (+n >= J - 1) m.rival = titulo(v.casa ? v.visitante : v.local);
+  }
+  // Próximo partido: rival oficial, fecha y hora
+  if (J < total) {
+    const calN = cal.find((x) => x.n === J + 1)!;
+    const p = calN.partidos.find((x) => esNos(c, x.local) || esNos(c, x.visitante));
+    const m = matches.find((x) => x.jornada === J + 1);
+    if (p && m && !/atsedena|descansa/i.test(p.local + p.visitante)) {
+      const jp = parseJornada(await get(urlJornada(c, J + 1))).find((x: any) => esNos(c, x.local) || esNos(c, x.visitante));
+      const casa = esNos(c, p.local);
+      m.rival = titulo(casa ? p.visitante : p.local);
+      m.date = iso(jp?.fecha || calN.fecha);
+      if (jp?.hora) m.hora = jp.hora;
+    }
   }
 
   // 7) Estadísticas desde todas las actas
@@ -462,6 +481,8 @@ export async function procesar(sb: any, cat: string, dry: boolean, hoy: string, 
       if (!p) continue;
       const nuevo = nombreBonito(x.nombre);
       if (p.name !== nuevo) { renombrados.push(`${p.name} → ${nuevo}`); p.name = nuevo; }
+      const partes = partesNombre(x.nombre);
+      if (p.nombre !== partes.nombre || p.apellidos !== partes.apellidos) { p.nombre = partes.nombre; p.apellidos = partes.apellidos; if (!renombrados.length || renombrados[renombrados.length - 1].indexOf(nuevo) < 0) renombrados.push(`${nuevo} (nombre/apellidos)`); }
       if (!p.number && x.dorsal) p.number = x.dorsal;
     }
   }

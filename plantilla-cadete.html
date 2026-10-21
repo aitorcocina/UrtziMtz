@@ -98,6 +98,9 @@
   }
   .player-info{flex:1; min-width:0;}
   .player-name{font-family:'Oswald',sans-serif; font-weight:500; font-size:17px; margin:0 0 2px; text-transform:uppercase; letter-spacing:.01em;}
+  .player-name .pn-ap{display:block; font-family:'Inter',system-ui,sans-serif; font-weight:400; font-size:12px; text-transform:none; letter-spacing:0; color:var(--line-dim); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .stat-ro{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:16px; min-width:24px; text-align:center;}
+  .stat-fuente{font-size:10.5px; color:var(--line-dim); margin-top:10px; line-height:1.4;}
   .player-phone{font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--line-dim); margin:0;}
   .player-phone a{color:var(--amber); text-decoration:none;}
   .player-num{
@@ -515,7 +518,7 @@
   .um-av{padding:0 !important; overflow:hidden; background:radial-gradient(circle at 50% 35%, #fff 0%, #f6e3e6 100%) !important;}
   .um-av img{width:100%; height:100%; object-fit:cover; object-position:50% 8%; display:block; transform:scale(1.15); transform-origin:50% 20%;}
 </style>
-<link rel="stylesheet" href="tema-claro.css"><script src="avatar.js?v=20261015b"></script><script src="dictado-voz.js" defer></script><script src="competicion-data.js?v=20261015b"></script><script src="competicion.js?v=20261021a" defer></script><script src="convocatoria.js?v=20261015b" defer></script><script src="acta.js?v=20261021a" defer></script><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#B3122B"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Entrenamiento"></head>
+<link rel="stylesheet" href="tema-claro.css"><script src="avatar.js?v=20261015b"></script><script src="dictado-voz.js" defer></script><script src="competicion-data.js?v=20261015b"></script><script src="competicion.js?v=20261021a" defer></script><script src="convocatoria.js?v=20261015b" defer></script><script src="acta.js?v=20261021b" defer></script><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#B3122B"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Entrenamiento"></head>
 <body>
 <div class="field-lines"></div>
 <div class="app">
@@ -967,7 +970,7 @@
           ? `<img class="player-photo" src="${p.photo}">`
           : `<div class="player-photo placeholder um-av">${avatarHTML(p, players)}</div>`}
         <div class="player-info">
-          <p class="player-name">${p.number ? `<span class="player-num">${escapeHtml(p.number)}</span>` : ''}${escapeHtml(p.name)}</p>
+          <p class="player-name">${p.number ? `<span class="player-num">${escapeHtml(p.number)}</span>` : ''}${nombreHTML(p)}</p>
           <p class="player-phone">${p.phone ? `<a href="tel:${escapeHtml(p.phone)}">${escapeHtml(p.phone)}</a>` : 'Sin teléfono'}</p>
         </div>
         <div class="player-actions">
@@ -1109,6 +1112,12 @@
     return (s.counts.titular||0) + (s.counts.suplente||0);
   }
 
+  // Nombre en grande y apellidos debajo (si vienen de la federación: p.nombre / p.apellidos)
+  function nombreHTML(p){
+    const full = String(p.name || '');
+    if(p.nombre && p.apellidos && `${p.nombre} ${p.apellidos}` === full) return `${escapeHtml(p.nombre)}<span class="pn-ap">${escapeHtml(p.apellidos)}</span>`;
+    return escapeHtml(full);
+  }
   const statCardHTML = p=>{
       const s = getStat(p.id);
       return `
@@ -1118,7 +1127,7 @@
             ? `<img class="player-photo" src="${p.photo}" style="width:44px;height:44px;">`
             : `<div class="player-photo placeholder um-av" style="width:44px;height:44px;">${avatarHTML(p, players)}</div>`}
           <div class="player-info">
-            <p class="player-name" style="font-size:15px;">${p.number ? `<span class="player-num">${escapeHtml(p.number)}</span>` : ''}${escapeHtml(p.name)}</p>
+            <p class="player-name" style="font-size:15px;">${p.number ? `<span class="player-num">${escapeHtml(p.number)}</span>` : ''}${nombreHTML(p)}</p>
           </div>
           <div class="pj-badge"><b>${playedCount(s)}</b><span>Jugados</span></div>
           <div class="pj-badge" title="Minutos jugados según las actas de la federación"><b>${s.minutes || 0}</b><span>Minutos</span></div>
@@ -1127,48 +1136,41 @@
           <div class="stat-box goals">
             <div class="stat-box-label"><span class="ball-icon"></span>Goles</div>
             <div class="stat-controls">
-              <button class="stat-btn" data-type="goals" data-delta="-1">–</button>
-              <span class="stat-value">${s.goals}</span>
-              <button class="stat-btn" data-type="goals" data-delta="1">+</button>
+              <span class="stat-value stat-ro">${s.goals}</span>
             </div>
           </div>
           <div class="stat-box yellow">
             <div class="stat-box-label"><span class="card-icon yellow"></span>Amarillas</div>
             <div class="stat-controls">
-              <button class="stat-btn" data-type="yellow" data-delta="-1">–</button>
-              <span class="stat-value">${s.yellow}</span>
-              <button class="stat-btn" data-type="yellow" data-delta="1">+</button>
+              <span class="stat-value stat-ro">${s.yellow}</span>
             </div>
           </div>
           <div class="stat-box red">
             <div class="stat-box-label"><span class="card-icon red"></span>Rojas</div>
             <div class="stat-controls">
-              <button class="stat-btn" data-type="red" data-delta="-1">–</button>
-              <span class="stat-value">${s.red}</span>
-              <button class="stat-btn" data-type="red" data-delta="1">+</button>
+              <span class="stat-value stat-ro">${s.red}</span>
             </div>
           </div>
         </div>
         <div class="status-row">
-          ${STATUS_OPTS.map(opt => `
+          ${STATUS_OPTS.filter(opt => opt.key !== 'no_convocado').map(opt => `
             <div class="status-pill status-counter status-${opt.key}">
               <div>${opt.label}</div>
               <div class="stat-controls">
-                <button class="stat-btn" data-count="${opt.key}" data-delta="-1">–</button>
-                <span class="stat-value">${s.counts[opt.key]}</span>
-                <button class="stat-btn" data-count="${opt.key}" data-delta="1">+</button>
+                ${opt.key === 'sancionado' ? `<button class="stat-btn" data-count="${opt.key}" data-delta="-1">–</button>` : ''}
+                <span class="stat-value${opt.key === 'sancionado' ? '' : ' stat-ro'}">${s.counts[opt.key]}</span>
+                ${opt.key === 'sancionado' ? `<button class="stat-btn" data-count="${opt.key}" data-delta="1">+</button>` : ''}
               </div>
             </div>
           `).join('')}
             <div class="status-pill status-counter status-jugados">
               <div>Convocado</div>
               <div class="stat-controls">
-                <button class="stat-btn" data-count="convocado" data-delta="-1">–</button>
-                <span class="stat-value">${s.counts.convocado}</span>
-                <button class="stat-btn" data-count="convocado" data-delta="1">+</button>
+                <span class="stat-value stat-ro">${s.counts.convocado}</span>
               </div>
             </div>
         </div>
+        <div class="stat-fuente">Datos del acta oficial de la Federación (se actualizan los lunes). Solo «Sancionado» se marca a mano.</div>
       </div>`;
     };
   function bindStatButtons(root, rerender){
@@ -1278,23 +1280,23 @@
         <div class="match-top">
           <div>
             <div class="match-rival">${escapeHtml(m.rival || 'Rival por definir')}</div>
-            <div class="match-date">${formatMatchDate(m.date)}</div>
+            <div class="match-date">${formatMatchDate(m.date)}${m.hora ? ` · ${escapeHtml(m.hora)}` : ''}</div>
             <div class="match-venue">${m.venue === 'fuera' ? '🚗 Fuera' : m.venue === 'casa' ? '🏠 En casa' : '⚠️ Falta indicar casa/fuera'}</div>
           </div>
           ${hasScore ? `<div class="match-score">${m.scoreFor} – ${m.scoreAgainst}</div>` : ''}
         </div>
         <span class="match-badge ${type}">${badgeLabel[type]}</span>
         <div class="match-actions">
-          <button class="conv-btn${hasConv ? ' has-conv' : ''}" data-action="conv" data-id="${m.id}">
+          ${hasScore ? '' : `<button class="conv-btn${hasConv ? ' has-conv' : ''}" data-action="conv" data-id="${m.id}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1-4 4-6 7.5-6s6.5 2 7.5 6"/><path d="M9 8l2 2 4-4"/></svg>
             ${hasConv ? `Convocatoria (${convCount})` : 'Crear convocatoria'}
-          </button>
+          </button>`}
           ${hasScore ? `<button class="acta-btn" data-action="acta" data-id="${m.id}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></svg>
             Acta del partido
           </button>` : ''}
         </div>
-        ${metaBits.length ? `<div class="match-conv-meta">${metaBits.join('<span>·</span>')}</div>` : ''}
+        ${metaBits.length && !hasScore ? `<div class="match-conv-meta">${metaBits.join('<span>·</span>')}</div>` : ''}
       </div>`;
     }).join('');
     list.querySelectorAll('.match-card').forEach(card=>{
