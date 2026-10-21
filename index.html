@@ -40,9 +40,10 @@
     width:96px;height:auto;
     display:flex;align-items:center;justify-content:center;
     margin-bottom:26px;
-    filter:drop-shadow(0 0 22px rgba(227,30,36,0.55)) drop-shadow(0 10px 24px rgba(0,0,0,0.6));
   }
-  .home .logo-mark img{width:100%;height:auto;display:block;border-radius:22.5%;}
+  /* Brillo con box-shadow (no filter): Safari recorta los filtros en un recuadro */
+  .home .logo-mark img{width:100%;height:auto;display:block;border-radius:22.5%;
+    box-shadow:0 0 46px 6px rgba(227,30,36,0.5), 0 12px 40px rgba(0,0,0,0.45);}
   .home .kicker{
     color:var(--rojo);letter-spacing:2.5px;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:8px;
   }
