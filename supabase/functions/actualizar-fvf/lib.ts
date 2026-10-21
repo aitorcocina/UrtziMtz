@@ -19,12 +19,12 @@ export const CATS: Record<string, any> = {
   juvenil: {
     comp: "24058478", grupo: "24153119", agrup: "1773564", temporada: "22",
     nosotros: "GORLIZ A", equipo: 'GORLIZ "A"',
-    competicion: "División de Honor Juvenil · Bizkaia · Grupo 1",
+    competicion: "División de Honor Juvenil · Bizkaia · Grupo 1", duracion: 90,
   },
   cadete: {
     comp: "24058487", grupo: "24190893", agrup: "1773565", temporada: "22",
     nosotros: "GORLIZ", equipo: "GORLIZ",
-    competicion: "Segunda División Cadete · Bizkaia · Grupo 2",
+    competicion: "Segunda División Cadete · Bizkaia · Grupo 2", duracion: 80,
   },
 };
 
@@ -47,12 +47,22 @@ export function titulo(n: string) {
     return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
   }).join(" ");
 }
+// "ORTEGA PEREZ, PAU" -> "Pau Ortega Perez"
+export function nombreBonito(n: string) {
+  const [ap, no] = n.split(",").map((x) => x.trim());
+  const t = (x: string) => x.toLowerCase().split(/\s+/).map((w, i) => (i > 0 && ["de", "del", "la", "y"].includes(w)) ? w : w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  return no ? `${t(no)} ${t(ap)}` : t(ap);
+}
 const DIAS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 export function fechaCorta(ddmmyyyy: string, hora?: string) {
   const [d, m, y] = ddmmyyyy.split("-").map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d));
   return `${DIAS[dt.getUTCDay()]} ${d} ${MESES[m - 1]}` + (hora ? ` ${hora}` : "");
+}
+function minNombre(txt: string) {
+  const m = txt.match(/^\((\d+)'(?:\s*\+\s*(\d+))?\)\s*(.*)$/);
+  return m ? { min: Number(m[1]), extra: m[2] ? Number(m[2]) : 0, nombre: m[3].trim() } : { min: null as number | null, extra: 0, nombre: txt.trim() };
 }
 function iso(ddmmyyyy: string) { const [d, m, y] = ddmmyyyy.split("-"); return `${y}-${m}-${d}`; }
 export function hoyMadrid() {
@@ -177,7 +187,7 @@ export function parseActa(h: string) {
     const sc = b.match(/<h4>Ordezkapenak<\/h4>([\s\S]*?)(?:<h4|$)/);
     if (sc) for (const tr of sc[1].matchAll(/<tr>([\s\S]*?)<\/tr>/g)) {
       const c = [...tr[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((x) => x[1]);
-      if (c.length >= 3) cambios.push({ nombre: clean(c[1]).replace(/^\([^)]*\)\s*/, ""), entra: c[2].includes("arrow-left") });
+      if (c.length >= 3) { const x = minNombre(clean(c[1])); cambios.push({ nombre: x.nombre, min: x.min, entra: c[2].includes("arrow-left") }); }
     }
     const tarjetas: any[] = [];
     const st = b.match(/<h4>Txartelak<\/h4>([\s\S]*?)<\/table>/);
@@ -185,7 +195,8 @@ export function parseActa(h: string) {
       const c = [...tr[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((x) => x[1]);
       if (c.length < 2) continue;
       const tipo = (c[0].match(/tarj_(\w+)\.gif/) || [])[1] || "?";
-      tarjetas.push({ tipo, nombre: clean(c[1]).replace(/^\([^)]*\)\s*/, "") });
+      const x = minNombre(clean(c[1]));
+      tarjetas.push({ tipo, nombre: x.nombre, min: x.min, extra: x.extra });
     }
     equipos.push({ equipo: nombre, titulares: filas("Titularrak"), suplentes: filas("Ordezkoak"), cambios, tarjetas });
   }
@@ -196,9 +207,13 @@ export function parseActa(h: string) {
     if (c.length < 2) continue;
     const col = (c[0].match(/fa-futbol" style="color: ([^;"]+)/) || [])[1] || "";
     const tipo = col === "red" ? "propia" : col.startsWith("rgb(21") ? "penalti" : "gol";
-    goles.push({ nombre: clean(c[1]).replace(/^\([^)]*\)\s*/, ""), tipo });
+    const x = minNombre(clean(c[1]));
+    goles.push({ nombre: x.nombre, min: x.min, extra: x.extra, tipo });
   }
-  return { equipos, goles };
+  const t = clean(h);
+  const arbitro = (t.match(/Árbitro Principal\s+([^]+?)(?:\s{2,}|\s+Golak|\s+Epaile|\s+Asistente|$)/) || [])[1] || null;
+  const campo = (t.match(/Futbol Zelaia:\s*([^]+?)\s+(?:Hiria|$)/) || [])[1] || null;
+  return { equipos, goles, arbitro: arbitro ? arbitro.trim() : null, campo: campo ? campo.trim() : null };
 }
 
 // ---------- lógica ----------
@@ -217,10 +232,28 @@ export function resumenActa(c: any, a: any) {
     if (g.tipo === "propia") nuestro = !nuestro; else if (nuestro) goleadores.push(g.nombre);
     if (nuestro) gf++; else gc++;
   }
+  // Cambios: el acta los da por parejas (entra sin minuto, sale con minuto)
+  const cambios: any[] = [];
+  for (let i = 0; i < nos.cambios.length; i++) {
+    const x = nos.cambios[i], y = nos.cambios[i + 1];
+    if (x.entra && y && !y.entra) { cambios.push({ min: y.min ?? x.min, entra: x.nombre, sale: y.nombre }); i++; }
+    else if (x.entra) cambios.push({ min: x.min, entra: x.nombre, sale: null });
+    else cambios.push({ min: x.min, entra: null, sale: x.nombre });
+  }
+  // Goles en orden con el marcador desde el punto de vista del Gorliz
+  let mf = 0, mc = 0;
+  const goles = a.goles.map((g: any) => {
+    let nuestro = mios.has(g.nombre);
+    if (g.tipo === "propia") nuestro = !nuestro;
+    if (nuestro) mf++; else mc++;
+    return { min: g.min, extra: g.extra, nombre: g.nombre, tipo: g.tipo, nuestro, marcador: `${mf}-${mc}` };
+  });
   return {
+    v: 2,
     titulares: nos.titulares, suplentes: nos.suplentes,
-    entran: nos.cambios.filter((x: any) => x.entra).map((x: any) => x.nombre),
-    goleadores, tarjetas: nos.tarjetas, gf, gc, rival: otro.equipo,
+    entran: cambios.filter((x) => x.entra).map((x) => x.entra),
+    cambios, goles, goleadores, tarjetas: nos.tarjetas, gf, gc, rival: otro.equipo,
+    arbitro: a.arbitro, campo: a.campo,
   };
 }
 
@@ -239,7 +272,7 @@ export function emparejar(nombre: string, dorsal: string | null, jugadores: any[
   return null;
 }
 
-export async function procesar(sb: any, cat: string, dry: boolean, hoy: string) {
+export async function procesar(sb: any, cat: string, dry: boolean, hoy: string, renombrar = false) {
   const c = CATS[cat];
   const avisos: string[] = [];
   const kv = async (k: string) => (await sb.from("team_data").select("value").eq("key", k).maybeSingle()).data?.value ?? null;
@@ -271,7 +304,16 @@ export async function procesar(sb: any, cat: string, dry: boolean, hoy: string) 
   for (const jd of cal.filter((x) => x.n <= J)) {
     const pc = jd.partidos.find((p) => esNos(c, p.local) || esNos(c, p.visitante));
     if (!pc || /atsedena|descansa/i.test(pc.local + pc.visitante)) { cache.jornadas[jd.n] = { descanso: true }; continue; }
-    if (cache.jornadas[jd.n]?.acta && jd.n < J - 1) continue;
+    const enCache = cache.jornadas[jd.n];
+    if (enCache?.acta?.v === 2 && jd.n < J - 1) continue;
+    if (enCache?.acta && enCache.actaId && jd.n < J - 1) {
+      // Caché de una versión anterior: se vuelve a leer solo el acta (con minutos, árbitro y campo)
+      if (sinTiempo()) { await guardarCache(); throw new Error(`PARCIAL: actas actualizadas hasta la jornada ${jd.n - 1}; vuelve a ejecutar para seguir.`); }
+      const nueva = resumenActa(c, parseActa(await get(urlActa(enCache.actaId))));
+      if (nueva && nueva.gf === enCache.gf && nueva.gc === enCache.gc) { enCache.acta = nueva; await guardarCache(); }
+      else avisos.push(`Jornada ${jd.n}: no se pudo releer el acta.`);
+      continue;
+    }
     if (sinTiempo()) { await guardarCache(); throw new Error(`PARCIAL: leídas hasta la jornada ${jd.n - 1}; vuelve a ejecutar para seguir.`); }
     const cl = jd.n === J ? clas : parseClasif(await get(urlClasif(c, jd.n)));
     const jl = parseJornada(await get(urlJornada(c, jd.n)));
@@ -374,6 +416,55 @@ export async function procesar(sb: any, cat: string, dry: boolean, hoy: string) 
     for (const g of a.goleadores) { const p = id(g, null); if (p) C(p).goals++; }
     for (const tj of a.tarjetas) { const p = id(tj.nombre, null); if (!p) continue; if (tj.tipo === "amar") C(p).yellow++; else { C(p).red++; if (tj.tipo !== "roja") avisos.push(`Jornada ${n}: tarjeta de tipo "${tj.tipo}" a ${tj.nombre}, contada como roja; revísala.`); } }
   }
+  // Minutos jugados por partido (titular desde el 0; el que entra desde su minuto; hasta el cambio, la roja o el final)
+  const dur = c.duracion || 90;
+  const minutos: Record<string, number> = {};
+  const actasApp: Record<string, any> = {};
+  const ultimoNombre: Record<string, { nombre: string; dorsal: string }> = {};
+  for (const [n, v] of jugados) {
+    const a = v.acta;
+    if (!a) continue;
+    const mins: Record<string, number> = {};
+    const inicio: Record<string, number> = {};
+    for (const x of a.titulares) inicio[x.nombre] = 0;
+    const fin: Record<string, number> = {};
+    for (const cb of a.cambios || []) {
+      const m = Math.min(dur, cb.min ?? dur);
+      if (cb.sale && fin[cb.sale] === undefined) fin[cb.sale] = m;
+      if (cb.entra && inicio[cb.entra] === undefined) inicio[cb.entra] = m;
+    }
+    for (const tj of a.tarjetas || []) if (tj.tipo !== "amar" && tj.min != null && fin[tj.nombre] === undefined) fin[tj.nombre] = Math.min(dur, tj.min);
+    for (const [nombre, ini] of Object.entries(inicio)) {
+      const m = Math.max(0, (fin[nombre] ?? dur) - ini);
+      mins[nombre] = m;
+      const pid = id(nombre, null);
+      if (pid) minutos[pid] = (minutos[pid] || 0) + m;
+    }
+    for (const x of [...a.titulares, ...a.suplentes]) ultimoNombre[x.nombre] = { nombre: x.nombre, dorsal: x.dorsal };
+    const m = matches.find((x) => x.jornada === +n);
+    const B = nombreBonito;
+    if (m) actasApp[m.id] = {
+      jornada: +n, fecha: v.fecha, hora: v.hora, local: titulo(v.local), visitante: titulo(v.visitante), gl: v.gl, gv: v.gv, casa: v.casa,
+      campo: a.campo ? titulo(a.campo) : null, arbitro: a.arbitro ? B(a.arbitro) : null, actaId: v.actaId, duracion: dur,
+      titulares: a.titulares.map((x: any) => ({ dorsal: x.dorsal, nombre: B(x.nombre), min: mins[x.nombre] ?? 0 })),
+      suplentes: a.suplentes.map((x: any) => ({ dorsal: x.dorsal, nombre: B(x.nombre), min: mins[x.nombre] ?? 0 })),
+      cambios: (a.cambios || []).map((x: any) => ({ min: x.min, entra: x.entra ? B(x.entra) : null, sale: x.sale ? B(x.sale) : null })),
+      goles: (a.goles || []).map((g: any) => ({ min: g.min, extra: g.extra, nombre: B(g.nombre), tipo: g.tipo, nuestro: g.nuestro, marcador: g.marcador })),
+      tarjetas: (a.tarjetas || []).map((x: any) => ({ min: x.min, extra: x.extra, nombre: B(x.nombre), tipo: x.tipo })),
+    };
+  }
+  // Renombrar (solo cuando se pide): nombre de la federación y dorsal si falta
+  const renombrados: string[] = [];
+  if (renombrar) {
+    for (const x of Object.values(ultimoNombre)) {
+      const pid = id(x.nombre, x.dorsal);
+      const p = jugadores.find((q) => q.id === pid);
+      if (!p) continue;
+      const nuevo = nombreBonito(x.nombre);
+      if (p.name !== nuevo) { renombrados.push(`${p.name} → ${nuevo}`); p.name = nuevo; }
+      if (!p.number && x.dorsal) p.number = x.dorsal;
+    }
+  }
   for (const p of jugadores) {
     if (excluir.has(p.id)) continue;
     const k = cont[p.id] || { titular: 0, suplente: 0, convocado: 0, goals: 0, yellow: 0, red: 0 };
@@ -385,6 +476,7 @@ export async function procesar(sb: any, cat: string, dry: boolean, hoy: string) 
     s.counts.lesionado = Math.max(0, partidosEquipo - k.convocado - sancion);
     s.counts.no_convocado = 0;
     s.counts.sancionado = sancion;
+    s.minutes = minutos[p.id] || 0;
   }
   if (sinPareja.size) avisos.push(`En el acta pero no en la app (no contados): ${[...sinPareja].join("; ")}.`);
 
@@ -403,7 +495,12 @@ export async function procesar(sb: any, cat: string, dry: boolean, hoy: string) 
       { key: `${cat}:matches`, value: matches, updated_at: now },
       { key: `${cat}:stats`, value: stats, updated_at: now },
       { key: `${cat}:fvf-cache`, value: cache, updated_at: now },
+      { key: `${cat}:actas`, value: actasApp, updated_at: now },
     ];
+    if (renombrados.length) {
+      ups.push({ key: `backup-${cat}-players-${hoy}-antes-nombres-fvf`, value: (await kv(`${cat}:players`)), updated_at: now });
+      ups.push({ key: `${cat}:players`, value: jugadores, updated_at: now });
+    }
     // copia de seguridad del día (solo si no existe ya)
     for (const [k, v] of [[`backup-${cat}-stats-${hoy}-antes-fvf`, statsPrev], [`backup-${cat}-matches-${hoy}-antes-fvf`, (await kv(`${cat}:matches`))]] as [string, any][]) {
       if (v && !(await kv(k))) ups.push({ key: k, value: v, updated_at: now });
@@ -411,6 +508,7 @@ export async function procesar(sb: any, cat: string, dry: boolean, hoy: string) 
     const { error } = await sb.from("team_data").upsert(ups);
     if (error) throw new Error("Error guardando en Supabase: " + error.message);
   }
-  return { cat, escrito: !dry, resumen, avisos, liga, matches, stats, contados: cont, partidosEquipo };
+  if (renombrados.length) avisos.push(`Nombres cambiados: ${renombrados.length}.`);
+  return { cat, escrito: !dry, resumen, avisos, liga, matches, stats, contados: cont, partidosEquipo, minutos, actasApp, renombrados };
 }
 

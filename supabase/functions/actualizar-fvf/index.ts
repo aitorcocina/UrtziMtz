@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
   const ligas: any = {};
   for (const cat of cats) {
     try {
-      const r: any = await procesar(sb, cat, dry, hoy);
+      const r: any = await procesar(sb, cat, dry, hoy, u.searchParams.get("renombrar") === "1");
       informe.categorias[cat] = { fecha: informe.fecha, resumen: r.resumen, avisos: r.avisos };
       if (r.liga) ligas[cat] = r.liga;
       if (dry) informe.categorias[cat].detalle = r;
