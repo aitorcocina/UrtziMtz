@@ -42,6 +42,14 @@
       '.lg-tbl td:first-child,.lg-tbl th:first-child{text-align:center;width:24px}' +
       '.lg-tbl td.pts{font-weight:700}' +
       '.lg-tbl tr.yo td{background:rgba(179,18,43,.09);font-weight:700;color:var(--amber-dark)}' +
+      '.lg-tbl tr.z-asc td{background:rgba(46,184,92,.17)}' +
+      '.lg-tbl tr.z-prom td{background:rgba(250,204,21,.22)}' +
+      '.lg-tbl tr.z-desc td{background:rgba(229,57,53,.15)}' +
+      '.lg-tbl tr.z-asc td:first-child{box-shadow:inset 4px 0 0 #2EB85C}' +
+      '.lg-tbl tr.z-prom td:first-child{box-shadow:inset 4px 0 0 #FACC15}' +
+      '.lg-tbl tr.z-desc td:first-child{box-shadow:inset 4px 0 0 #E53935}' +
+      '.lg-leyenda{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:11px;color:var(--line-dim)}' +
+      '.lg-leyenda i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}' +
       '.lg-m{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;padding:8px 0;border-top:1px solid var(--line-faint);font-size:13px}' +
       '.lg-m:first-of-type{border-top:none}' +
       '.lg-m .f{grid-column:1/-1;font-size:11px;color:var(--line-dim)}' +
@@ -67,6 +75,18 @@
       }).join('');
     }
     var prox = D.proximos.partidos.filter(function(m){ return esYo(m[1])||esYo(m[3]); })[0];
+    /* Zonas de la clasificación (como en la FVF): ascenso / promoción de ascenso / descenso */
+    var ZONAS = cat === 'cadete' ? { asc: 2, prom: 1, desc: 2 } : { asc: 1, prom: 1, desc: 3 };
+    function zona(i){
+      var n = D.clasificacion.length;
+      if(i < ZONAS.asc) return 'z-asc';
+      if(i < ZONAS.asc + ZONAS.prom) return 'z-prom';
+      if(i >= n - ZONAS.desc) return 'z-desc';
+      return '';
+    }
+    function leyenda(){
+      return '<div class="lg-leyenda"><span><i style="background:#2EB85C"></i>Ascenso</span><span><i style="background:#FACC15"></i>Promoción ascenso</span><span><i style="background:#E53935"></i>Descenso</span></div>';
+    }
     var h = '<div class="section-title">Liga</div><div class="lg-sub">'+esc(D.competicion)+' · '+esc(D.jornada)+'</div>';
     if(prox){
       h += '<div class="lg-card"><div class="lg-h">Próximo partido · '+esc(D.proximos.titulo)+'</div><div class="lg-next"><div>'+esc(prox[1])+' <span style="color:var(--line-dim)">vs</span> '+esc(prox[3])+'<small>'+esc(prox[0])+'</small></div></div><button type="button" id="lg-conv" style="margin-top:12px;width:100%;border:none;border-radius:16px;padding:13px;font-size:15px;font-weight:600;background:#B3122B;color:#fff;cursor:pointer">📋 Convocatoria</button>'+
@@ -74,8 +94,8 @@
     }
     h += '<div class="lg-card"><div class="lg-h">Clasificación</div><table class="lg-tbl"><tr><th>#</th><th>EQUIPO</th><th>PTS</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF</th><th>GC</th></tr>' +
       D.clasificacion.map(function(t,i){
-        return '<tr class="'+(esYo(t[0])?'yo':'')+'"><td>'+(i+1)+'</td><td>'+esc(t[0])+'</td><td class="pts">'+t[1]+'</td><td>'+t[2]+'</td><td>'+t[3]+'</td><td>'+t[4]+'</td><td>'+t[5]+'</td><td>'+t[6]+'</td><td>'+t[7]+'</td></tr>';
-      }).join('') + '</table></div>';
+        return '<tr class="'+(esYo(t[0])?'yo ':'')+zona(i)+'"><td>'+(i+1)+'</td><td>'+esc(t[0])+'</td><td class="pts">'+t[1]+'</td><td>'+t[2]+'</td><td>'+t[3]+'</td><td>'+t[4]+'</td><td>'+t[5]+'</td><td>'+t[6]+'</td><td>'+t[7]+'</td></tr>';
+      }).join('') + '</table>' + leyenda() + '</div>';
     h += '<div class="lg-card"><div class="lg-h">Resultados · '+esc(D.ultimos.titulo)+'</div>'+filas(D.ultimos.partidos)+'</div>';
     h += '<div class="lg-card"><div class="lg-h">Próxima jornada · '+esc(D.proximos.titulo)+'</div>'+filas(D.proximos.partidos)+'</div>';
     h += '<div class="lg-pie">Actualizado: '+esc(window.COMPETICION_DATA.actualizado)+' · Fuente: '+esc(fuente())+'</div>';

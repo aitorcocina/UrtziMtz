@@ -518,7 +518,7 @@
   .um-av{padding:0 !important; overflow:hidden; background:radial-gradient(circle at 50% 35%, #fff 0%, #f6e3e6 100%) !important;}
   .um-av img{width:100%; height:100%; object-fit:cover; object-position:50% 8%; display:block; transform:scale(1.15); transform-origin:50% 20%;}
 </style>
-<link rel="stylesheet" href="tema-claro.css"><script src="avatar.js?v=20261015b"></script><script src="dictado-voz.js" defer></script><script src="competicion-data.js?v=20261015b"></script><script src="competicion.js?v=20261021a" defer></script><script src="convocatoria.js?v=20261021b" defer></script><script src="acta.js?v=20261021c" defer></script><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#B3122B"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Entrenamiento"></head>
+<link rel="stylesheet" href="tema-claro.css"><script src="avatar.js?v=20261015b"></script><script src="dictado-voz.js" defer></script><script src="competicion-data.js?v=20261015b"></script><script src="competicion.js?v=20261022a" defer></script><script src="convocatoria.js?v=20261021b" defer></script><script src="acta.js?v=20261021c" defer></script><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#B3122B"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Entrenamiento"></head>
 <body>
 <div class="field-lines"></div>
 <div class="app">
@@ -747,7 +747,7 @@
       var b = document.createElement('button'); b.id = 'editModeBtn'; b.type = 'button';
       var on = !!getEditKey();
       b.textContent = on ? '✏️ Edición' : '🔒 Solo lectura';
-      b.setAttribute('style','position:fixed;left:8px;bottom:72px;z-index:60;font:600 11px system-ui,sans-serif;padding:6px 10px;border-radius:14px;border:1px solid rgba(128,128,128,.5);background:rgba(20,20,20,.72);color:#fff;opacity:.8;cursor:pointer');
+      b.setAttribute('style','position:fixed;right:8px;top:6px;z-index:60;font:600 10px system-ui,sans-serif;padding:4px 8px;border-radius:14px;border:1px solid rgba(128,128,128,.5);background:rgba(20,20,20,.72);color:#fff;opacity:.6;cursor:pointer');
       b.addEventListener('click', function(){
         try{
           if(getEditKey()){
