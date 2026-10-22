@@ -737,7 +737,33 @@
   const SUPABASE_URL = 'https://bzjzedwbahgitunoksps.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_GwXGrJorusdd94VeHBH4Lg_C657Knj5';
 
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  /* ===== Modo edición: todos pueden VER; solo se guarda con el código de edición (se pide una vez por dispositivo) ===== */
+  function getEditKey(){ try{ return localStorage.getItem('urtzi_edit_key') || ''; }catch(e){ return ''; } }
+  function urtziOpts(){ var k = getEditKey(); return k ? { global: { headers: { 'x-edit-key': k } } } : {}; }
+  (function(){
+    function mount(){
+      if(document.getElementById('editModeBtn')) return;
+      var b = document.createElement('button'); b.id = 'editModeBtn'; b.type = 'button';
+      var on = !!getEditKey();
+      b.textContent = on ? '✏️ Edición' : '🔒 Solo lectura';
+      b.setAttribute('style','position:fixed;left:8px;bottom:72px;z-index:60;font:600 11px system-ui,sans-serif;padding:6px 10px;border-radius:14px;border:1px solid rgba(128,128,128,.5);background:rgba(20,20,20,.72);color:#fff;opacity:.8;cursor:pointer');
+      b.addEventListener('click', function(){
+        try{
+          if(getEditKey()){
+            if(confirm('¿Volver a modo solo lectura en este dispositivo?')){ localStorage.removeItem('urtzi_edit_key'); location.reload(); }
+          }else{
+            var c = prompt('Código de edición (solo para quien puede modificar la app):');
+            if(c && c.trim()){ localStorage.setItem('urtzi_edit_key', c.trim()); location.reload(); }
+          }
+        }catch(e){}
+      });
+      document.body.appendChild(b);
+    }
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
+  })();
+
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, urtziOpts());
 
   /* Esta ficha es la del equipo JUVENIL: todas las claves se guardan con este
      prefijo para no mezclarse con las del equipo CADETE (misma base de datos). */
@@ -746,11 +772,11 @@
   async function storeSet(key, value){
     try{
       const { error } = await sb.from('team_data').upsert({ key: TEAM_PREFIX+key, value, updated_at: new Date().toISOString() });
-      if(error){ console.error(error); toast('No se pudo guardar (revisa la conexión con Supabase).'); return null; }
+      if(error){ console.error(error); toast(getEditKey() ? 'No se pudo guardar (revisa la conexión o el código de edición).' : 'Solo lectura: para guardar cambios hace falta el código de edición.'); return null; }
       return true;
     }catch(e){
       console.error(e);
-      toast('No se pudo guardar (revisa la conexión con Supabase).');
+      toast(getEditKey() ? 'No se pudo guardar (revisa la conexión o el código de edición).' : 'Solo lectura: para guardar cambios hace falta el código de edición.');
       return null;
     }
   }

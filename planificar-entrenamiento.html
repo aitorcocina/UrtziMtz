@@ -992,6 +992,31 @@ svg#pitch{
   /* ---------------- Plantilla (Supabase, solo lectura) ---------------- */
   const SUPABASE_URL = 'https://bzjzedwbahgitunoksps.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_GwXGrJorusdd94VeHBH4Lg_C657Knj5';
+
+  /* ===== Modo edición: todos pueden VER; solo se guarda con el código de edición (se pide una vez por dispositivo) ===== */
+  function getEditKey(){ try{ return localStorage.getItem('urtzi_edit_key') || ''; }catch(e){ return ''; } }
+  function urtziOpts(){ var k = getEditKey(); return k ? { global: { headers: { 'x-edit-key': k } } } : {}; }
+  (function(){
+    function mount(){
+      if(document.getElementById('editModeBtn')) return;
+      var b = document.createElement('button'); b.id = 'editModeBtn'; b.type = 'button';
+      var on = !!getEditKey();
+      b.textContent = on ? '✏️ Edición' : '🔒 Solo lectura';
+      b.setAttribute('style','position:fixed;left:8px;bottom:72px;z-index:60;font:600 11px system-ui,sans-serif;padding:6px 10px;border-radius:14px;border:1px solid rgba(128,128,128,.5);background:rgba(20,20,20,.72);color:#fff;opacity:.8;cursor:pointer');
+      b.addEventListener('click', function(){
+        try{
+          if(getEditKey()){
+            if(confirm('¿Volver a modo solo lectura en este dispositivo?')){ localStorage.removeItem('urtzi_edit_key'); location.reload(); }
+          }else{
+            var c = prompt('Código de edición (solo para quien puede modificar la app):');
+            if(c && c.trim()){ localStorage.setItem('urtzi_edit_key', c.trim()); location.reload(); }
+          }
+        }catch(e){}
+      });
+      document.body.appendChild(b);
+    }
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
+  })();
   let squadPlayers = [];       // [{id, number, name}] tal cual en Plantilla
   let squadSelected = new Set(); // ids convocados al campo
   let squadFieldId = {};       // playerId -> token id en el campo (players[])
@@ -1063,7 +1088,7 @@ svg#pitch{
     const panel = document.getElementById('squadPanel');
     panel.innerHTML = '<div class="squad-panel-status">Cargando plantilla…</div>';
     try{
-      const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, urtziOpts());
       const { data, error } = await sb.from('team_data').select('value').eq('key', currentTeam+':players').maybeSingle();
       if(error) throw error;
       squadPlayers = (data && data.value) || [];
@@ -1520,7 +1545,7 @@ svg#pitch{
     btn.textContent = '💾 Guardando…';
     try{
       const key = team + ':training-sessions';
-      const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, urtziOpts());
       const { data, error: readErr } = await sb.from('team_data').select('value').eq('key', key).maybeSingle();
       if(readErr) throw readErr;
       const sesiones = (data && data.value) || [];
@@ -1545,7 +1570,7 @@ svg#pitch{
 
       showToast(`Guardado en el calendario de ${TEAMS[team]} › Entrenos`);
     }catch(e){
-      showToast('No se pudo guardar. Revisa la conexión.');
+      showToast(getEditKey() ? 'No se pudo guardar. Revisa la conexión o el código de edición.' : 'Solo lectura: para guardar hace falta el código de edición.');
     }finally{
       btn.disabled = false;
       btn.textContent = '💾 Guardar';
