@@ -91,7 +91,9 @@
       };
       if (q('#avProbar')) q('#avProbar').onclick = function () {
         this.disabled = true;
-        api('rpc/ent_prueba', { method: 'POST', body: {} })
+        var j = s.toJSON();
+        api('ent_push?on_conflict=endpoint', { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal', body: [{ endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth }] })
+          .then(function () { return api('rpc/ent_prueba', { method: 'POST', body: {} }); })
           .then(function () { msg('Te llega en menos de un minuto. Puedes cerrar la app.'); })
           .catch(function () { msg('No se pudo programar la prueba. Prueba otra vez.', true); });
       };
