@@ -2,7 +2,7 @@
    Los avisos los manda Supabase (función agenda-avisos):
    - Viernes 17:00 y 21:30: convocatoria del Juvenil, del Cadete y cadetes que suben con el Juvenil.
    - Jueves 19:00: partidos del fin de semana con día y hora.
-   Para apuntar el móvil hace falta el código de edición (el mismo de siempre). */
+   No hace falta código: basta con tocar «Activar avisos» y permitir. */
 (function () {
   'use strict';
   var SB = 'https://bzjzedwbahgitunoksps.supabase.co', KEY = 'sb_publishable_GwXGrJorusdd94VeHBH4Lg_C657Knj5';
@@ -48,6 +48,11 @@
     suscripcion().then(function (s) { btn.classList.toggle('on', !!s && Notification.permission === 'granted'); btn.querySelector('span').textContent = s ? 'Avisos activados' : 'Activar avisos'; }).catch(function () {});
   }
   pintaBoton();
+  // por si el móvil quedó apuntado en el iPhone pero no en el servidor: se vuelve a guardar en silencio
+  if (soporta && Notification.permission === 'granted') suscripcion().then(function (s) {
+    if (!s) return; var j = s.toJSON();
+    api('ent_push?on_conflict=endpoint', { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal', body: [{ endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth }] }).catch(function () {});
+  }).catch(function () {});
 
   btn.onclick = function () {
     var ov = document.createElement('div'); ov.className = 'av-ov';
@@ -69,13 +74,9 @@
     suscripcion().then(function (s) {
       var z = q('#avZona');
       if (Notification.permission === 'denied') { z.innerHTML = '<p>Los avisos están bloqueados. Actívalos en Ajustes del iPhone › Notificaciones › Entrenamiento.</p>'; return; }
-      z.innerHTML = (codigo() ? '' : '<input id="avCod" type="password" placeholder="Código de edición" autocomplete="off">') +
-        (s ? '<button class="av-b" id="avProbar">Mandarme un aviso de prueba</button><button class="av-b sec" id="avQuitar">Desactivar en este móvil</button>'
+      z.innerHTML = (s ? '<button class="av-b" id="avProbar">Mandarme un aviso de prueba</button><button class="av-b sec" id="avQuitar">Desactivar en este móvil</button>'
            : '<button class="av-b" id="avActivar">Activar avisos</button>');
-      var cod = q('#avCod');
-      function guardaCodigo() { if (cod && cod.value.trim()) try { localStorage.setItem('urtzi_edit_key', cod.value.trim()); } catch (e) {} return !!codigo(); }
       if (q('#avActivar')) q('#avActivar').onclick = function () {
-        if (!guardaCodigo()) { msg('Pon el código de edición.', true); return; }
         this.disabled = true; msg('Activando…');
         Notification.requestPermission().then(function (p) {
           if (p !== 'granted') throw new Error('permiso');
@@ -86,13 +87,13 @@
           var j = sub.toJSON();
           return api('ent_push?on_conflict=endpoint', { method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal', body: [{ endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth }] });
         }).then(function () { msg('Avisos activados.'); pintaBoton(); setTimeout(function () { ov.remove(); btn.click(); }, 900); })
-          .catch(function (e) { msg(e.message === 'permiso' ? 'Sin permiso para avisar.' : 'No se pudo activar. ¿El código de edición es correcto?', true); });
+          .catch(function (e) { msg(e.message === 'permiso' ? 'Sin permiso para avisar. Actívalo en Ajustes del iPhone › Notificaciones › Entrenamiento.' : 'No se pudo activar. Prueba otra vez.', true); console.warn(e); });
       };
       if (q('#avProbar')) q('#avProbar').onclick = function () {
-        guardaCodigo(); this.disabled = true;
+        this.disabled = true;
         api('rpc/ent_prueba', { method: 'POST', body: {} })
           .then(function () { msg('Te llega en menos de un minuto. Puedes cerrar la app.'); })
-          .catch(function () { msg('No se pudo programar la prueba. Revisa el código de edición.', true); });
+          .catch(function () { msg('No se pudo programar la prueba. Prueba otra vez.', true); });
       };
       if (q('#avQuitar')) q('#avQuitar').onclick = function () {
         var ep = s.endpoint;
