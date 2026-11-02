@@ -2,6 +2,7 @@
    Los avisos los manda Supabase (función agenda-avisos):
    - Viernes 17:00 y 21:30: convocatoria del Juvenil, del Cadete y cadetes que suben con el Juvenil.
    - Jueves 19:00: partidos del fin de semana con día y hora.
+   - Lunes 16:25: resumen de la liga y tarjetas (4 amarillas y sanciones).
    No hace falta código: basta con tocar «Activar avisos» y permitir. */
 (function () {
   'use strict';
@@ -57,7 +58,7 @@
   btn.onclick = function () {
     var ov = document.createElement('div'); ov.className = 'av-ov';
     ov.innerHTML = '<div class="av-hoja"><h3>Avisos del Centro de Entrenamiento</h3>' +
-      '<p>Te llegan como notificación de esta app:</p><ul><li>Viernes 17:00 y 21:30: convocatoria del Juvenil, del Cadete y cadetes que suben con el Juvenil</li><li>Jueves 19:00: partidos del fin de semana con día y hora</li></ul>' +
+      '<p>Te llegan como notificación de esta app:</p><ul><li>Viernes 17:00 y 21:30: convocatoria del Juvenil, del Cadete y cadetes que suben con el Juvenil</li><li>Jueves 19:00: partidos del fin de semana con día y hora</li><li>Lunes 16:25: jugadores con 4 amarillas y sancionados</li></ul>' +
       '<div id="avZona"></div><div class="av-msg" id="avMsg"></div><button class="av-b sec" id="avCerrar">Cerrar</button></div>';
     document.body.appendChild(ov);
     var q = function (s) { return ov.querySelector(s); };

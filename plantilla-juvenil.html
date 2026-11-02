@@ -517,6 +517,19 @@
   #matchConvBtn{display:none !important;}
   .um-av{padding:0 !important; overflow:hidden; background:radial-gradient(circle at 50% 35%, #fff 0%, #f6e3e6 100%) !important;}
   .um-av img{width:100%; height:100%; object-fit:cover; object-position:50% 8%; display:block; transform:scale(1.15); transform-origin:50% 20%;}
+
+  /* Avisos de tarjetas (entre el calendario y la plantilla) */
+  .alerta-tarj{display:flex;align-items:center;gap:12px;margin:0 0 8px;padding:12px 14px;border-radius:16px;background:#FFF4D6;border:1px solid #F0C65A;color:#14151a}
+  #alertasTarjetas:not(:empty){margin-bottom:16px}
+  .alerta-tarj .ico{flex:none;width:22px;height:30px;border-radius:4px;background:#FFB100;box-shadow:0 1px 3px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;font:700 15px 'Oswald',sans-serif;color:#14151a}
+  .alerta-tarj .ico.roja{background:#D3122B}
+  .alerta-tarj .txt{flex:1;min-width:0}
+  .alerta-tarj .tit{font:600 15px/1.2 'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.02em}
+  .alerta-tarj .nom{font:500 13px/1.35 'Inter',sans-serif;color:#4a4332;margin-top:2px}
+  .alerta-tarj.sanc{background:#FBE3E6;border-color:#E39AA6}
+  .alerta-tarj.sanc .nom{color:#5c2a33}
+  .alerta-tarj .dur{display:flex;align-items:center;gap:8px;margin-top:6px;font:500 12px 'Inter',sans-serif;color:#5c2a33}
+  .alerta-tarj .dur button{width:28px;height:28px;border-radius:8px;border:1px solid #E39AA6;background:#fff;color:#14151a;font-size:16px;line-height:1;cursor:pointer}
 </style>
 <link rel="stylesheet" href="tema-claro.css"><script src="avatar.js?v=20261015b"></script><script src="dictado-voz.js" defer></script><script src="competicion-data.js?v=20261015b"></script><script src="competicion.js?v=20261022a" defer></script><script src="convocatoria.js?v=20261021b" defer></script><script src="acta.js?v=20261021c" defer></script><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#B3122B"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Entrenamiento"></head>
 <body>
@@ -537,6 +550,7 @@
   <main>
     <!-- PLANTILLA -->
     <div class="view active" id="view-plantilla">
+      <div id="alertasTarjetas"></div>
       <div class="section-title">Plantilla</div>
       <div id="playersList"></div>
     </div>
@@ -961,6 +975,48 @@
       };
       reader.onerror = reject;
       reader.readAsDataURL(file);
+    });
+  }
+
+  /* ---------- Avisos de tarjetas ----------
+     4 amarillas (y 9, 14...): se calcula aquí con las estadísticas.
+     Sanciones: las deja cada lunes la función agenda-avisos en la clave "tarjetas". */
+  let tarjetasDoc = null;
+  async function loadTarjetas(){
+    tarjetasDoc = (await storeGet('tarjetas')) || null;
+    renderAlertasTarjetas();
+  }
+  function nombreCorto(p){
+    if(p.nombre) return (p.nombre + ' ' + String(p.apellidos||'').split(' ')[0]).trim();
+    return String(p.name||'').split(/\s+/).slice(0,2).join(' ');
+  }
+  function renderAlertasTarjetas(){
+    const box = $('alertasTarjetas');
+    if(!box) return;
+    const sanc = (tarjetasDoc && tarjetasDoc.sancionados) || [];
+    const porAmarillas = {};
+    players.forEach(p=>{
+      const y = (stats[p.id] && stats[p.id].yellow) || 0;
+      if(y % 5 === 4) (porAmarillas[y] = porAmarillas[y] || []).push(nombreCorto(p));
+    });
+    const puedeEditar = !!getEditKey();
+    let html = sanc.map((s,i)=>{
+      const roja = s.motivo === 'roja', d = s.duracion || 1;
+      return `<div class="alerta-tarj sanc" role="alert"><div class="ico${roja?' roja':''}">${roja?'':s.n}</div><div class="txt">
+        <div class="tit">Sancionado por ${roja?'tarjeta roja':s.n+' amarillas'}</div><div class="nom">${escapeHtml(s.nombre)}</div>
+        ${roja && puedeEditar ? `<div class="dur"><button type="button" data-sanc="${i}" data-delta="-1" aria-label="Un partido menos">–</button><span>${d} ${d===1?'partido':'partidos'}</span><button type="button" data-sanc="${i}" data-delta="1" aria-label="Un partido más">+</button></div>` : (roja && d>1 ? `<div class="dur">${d} partidos</div>` : '')}
+      </div></div>`;
+    }).join('');
+    html += Object.keys(porAmarillas).map(y=>{
+      const n = porAmarillas[y];
+      return `<div class="alerta-tarj" role="alert"><div class="ico">${y}</div><div class="txt"><div class="tit">${n.length} ${n.length===1?'jugador':'jugadores'} con ${y} amarillas</div><div class="nom">${n.map(escapeHtml).join(' · ')}</div></div></div>`;
+    }).join('');
+    box.innerHTML = html;
+    box.querySelectorAll('button[data-sanc]').forEach(b=>b.onclick = async ()=>{
+      const s = tarjetasDoc.sancionados[+b.dataset.sanc];
+      s.duracion = Math.max(1, (s.duracion||1) + (+b.dataset.delta));
+      renderAlertasTarjetas();
+      await storeSet('tarjetas', tarjetasDoc);
     });
   }
 
@@ -1984,6 +2040,7 @@
     calYear = now.getFullYear();
     calMonth = now.getMonth();
     await Promise.all([loadTeamInfo(), loadPlayers(), loadMonth(calYear, calMonth), loadStats(), loadMatches(), loadNotes()]);
+    await loadTarjetas();
     construirBarra(); actualizarPuntos(); requestAnimationFrame(()=>irAHoy(false));
   }
   init();
