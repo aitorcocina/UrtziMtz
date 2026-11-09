@@ -77,6 +77,28 @@
   .view{display:none;}
   .view.active{display:block;}
 
+  /* Informe PDF */
+  .informe-card{
+    position:relative; overflow:hidden; display:flex; align-items:center; gap:14px;
+    background:linear-gradient(135deg, var(--pitch-light), var(--pitch)); border:1px solid var(--line-faint);
+    border-radius:16px; padding:14px 14px 14px 16px; margin-bottom:18px; color:var(--line);
+  }
+  .informe-card::before{content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--amber);}
+  .informe-ico{
+    width:44px; height:44px; border-radius:12px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(227,30,36,0.14); color:var(--amber);
+  }
+  .informe-ico svg{width:24px; height:24px;}
+  .informe-txt{flex:1; min-width:0;}
+  .informe-tit{font-family:'Oswald',sans-serif; font-weight:500; font-size:16px; letter-spacing:.02em; text-transform:uppercase; margin:0 0 2px;}
+  .informe-sub{font-size:12.5px; color:var(--line-dim); margin:0; line-height:1.35;}
+  .informe-btn{
+    flex-shrink:0; border:0; border-radius:999px; padding:10px 16px; cursor:pointer;
+    background:var(--amber); color:#fff; font-family:'Oswald',sans-serif; font-weight:500; font-size:14px; letter-spacing:.06em;
+    text-transform:uppercase; box-shadow:0 4px 14px rgba(227,30,36,0.35);
+  }
+  .informe-btn:active{transform:scale(.97);}
+  .informe-btn:disabled{opacity:.6; cursor:wait;}
   .section-title{
     font-family:'Oswald',sans-serif; font-weight:500; font-size:13px; letter-spacing:.14em;
     text-transform:uppercase; color:var(--amber); margin:0 0 14px; display:flex; align-items:center; gap:10px;
@@ -531,7 +553,7 @@
   .alerta-tarj .dur{display:flex;align-items:center;gap:8px;margin-top:6px;font:500 12px 'Inter',sans-serif;color:#5c2a33}
   .alerta-tarj .dur button{width:28px;height:28px;border-radius:8px;border:1px solid #E39AA6;background:#fff;color:#14151a;font-size:16px;line-height:1;cursor:pointer}
 </style>
-<link rel="stylesheet" href="tema-claro.css"><script src="avatar.js?v=20261015b"></script><script src="dictado-voz.js" defer></script><script src="competicion-data.js?v=20261015b"></script><script src="competicion.js?v=20261022a" defer></script><script src="convocatoria.js?v=20261021b" defer></script><script src="acta.js?v=20261021c" defer></script><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#B3122B"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Entrenamiento"></head>
+<link rel="stylesheet" href="tema-claro.css"><script src="avatar.js?v=20261015b"></script><script src="informe-pdf.js?v=20261109"></script><script src="dictado-voz.js" defer></script><script src="competicion-data.js?v=20261015b"></script><script src="competicion.js?v=20261022a" defer></script><script src="convocatoria.js?v=20261021b" defer></script><script src="acta.js?v=20261021c" defer></script><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#B3122B"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Entrenamiento"></head>
 <body>
 <div class="field-lines"></div>
 <div class="app">
@@ -550,6 +572,14 @@
   <main>
     <!-- PLANTILLA -->
     <div class="view active" id="view-plantilla">
+      <div class="informe-card">
+        <div class="informe-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 17v-3M12 17v-5M15 17v-2"/></svg></div>
+        <div class="informe-txt">
+          <p class="informe-tit">Informe de estadísticas</p>
+          <p class="informe-sub">Todos los jugadores en un PDF para guardarlo o mandarlo.</p>
+        </div>
+        <button type="button" class="informe-btn" id="informeBtn">PDF</button>
+      </div>
       <div id="alertasTarjetas"></div>
       <div class="section-title">Plantilla</div>
       <div id="playersList"></div>
@@ -1284,6 +1314,43 @@
 
     bindStatButtons(list, renderStats);
   }
+
+  /* ---------- Informe PDF ---------- */
+  function filasInforme(){
+    const num = v => { const x = parseInt(v,10); return isNaN(x) ? 999 : x; };
+    return players.slice()
+      .sort((a,b)=> num(a.number) - num(b.number) || String(a.name||'').localeCompare(String(b.name||''), 'es'))
+      .map(p=>{
+        const s = getStat(p.id);
+        return {
+          dorsal: p.number || '', nombre: p.name || '', corto: nombreCorto(p),
+          conv: s.counts.convocado || 0, pj: playedCount(s), tit: s.counts.titular || 0, sup: s.counts.suplente || 0,
+          min: s.minutes || 0, goles: s.goals || 0, amarillas: s.yellow || 0, rojas: s.red || 0,
+          lesionado: s.counts.lesionado || 0, sancionado: s.counts.sancionado || 0
+        };
+      });
+  }
+  $('informeBtn').addEventListener('click', async ()=>{
+    const btn = $('informeBtn');
+    if(players.length === 0){ toast('No hay jugadores todavía.'); return; }
+    btn.disabled = true; btn.textContent = '…';
+    try{
+      const r = await window.InformePDF.generar({
+        equipo: TEAM_PREFIX === 'cadete:' ? 'CADETE' : 'JUVENIL',
+        nombreEquipo: (teamNameInput.value || '').trim(),
+        categoria: ($('teamCat').value || '').trim().replace(/^Categoría$/, ''),
+        logo: 'apple-touch-icon.png',
+        jugadores: filasInforme()
+      });
+      if(r === 'compartido') toast('Informe enviado');
+      else if(r === 'descargado') toast('PDF descargado');
+    }catch(e){
+      console.error(e);
+      toast('No se pudo crear el PDF. Revisa la conexión.');
+    }finally{
+      btn.disabled = false; btn.textContent = 'PDF';
+    }
+  });
 
   /* ---------- Partidos ---------- */
   let matches = [];
